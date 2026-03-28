@@ -189,8 +189,8 @@ type WireWebApplicationBuilder struct {
 func NewWireWebApplicationBuilder() *WireWebApplicationBuilder {
 	return &WireWebApplicationBuilder{
 		WebApplicationBuilder: NewWebApplicationBuilder(),
-		providers:            make([]any, 0),
-		modules:              make([]WireModule, 0),
+		providers:             make([]any, 0),
+		modules:               make([]WireModule, 0),
 	}
 }
 
@@ -267,4 +267,48 @@ func (a *WireApp) Shutdown(ctx context.Context) error {
 
 func (a *WireApp) WaitForShutdown() error {
 	return a.Application.WaitForShutdown()
+}
+
+func ProvideMiddlewareMixin(app *WebApplication, services *ServiceCollection) *MiddlewareMixin {
+	return NewMiddlewareMixin(app, services)
+}
+
+func ProvideWebAppWithMixin(app *WebApplication, services *ServiceCollection) *WebAppWithMixin {
+	return NewWebAppWithMixin(app, services)
+}
+
+type WireWebApp struct {
+	App      *WebAppWithMixin
+	Services *ServiceCollection
+}
+
+func ProvideWireWebApp(app *WebAppWithMixin, services *ServiceCollection) *WireWebApp {
+	return &WireWebApp{
+		App:      app,
+		Services: services,
+	}
+}
+
+func (a *WireWebApp) Run() error {
+	return a.App.Run()
+}
+
+func (a *WireWebApp) Listen(addr string) error {
+	return a.App.Listen(addr)
+}
+
+func (a *WireWebApp) UseCORS() abstract.MiddlewareUser {
+	return a.App.UseCORS()
+}
+
+func (a *WireWebApp) UseRecovery() abstract.MiddlewareUser {
+	return a.App.UseRecovery()
+}
+
+func (a *WireWebApp) UseLogging() abstract.MiddlewareUser {
+	return a.App.UseLogging()
+}
+
+func (a *WireWebApp) UseSecurity() abstract.MiddlewareUser {
+	return a.App.UseSecurity()
 }

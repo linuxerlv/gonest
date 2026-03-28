@@ -523,6 +523,215 @@ func (m *MiddlewareMixin) Application() abstract.WebApplication {
 
 var _ abstract.MiddlewareUser = (*MiddlewareMixin)(nil)
 
+// WebAppWithMixin 组合 WebApplication 和 MiddlewareMixin
+type WebAppWithMixin struct {
+	app   *WebApplication
+	mixin *MiddlewareMixin
+}
+
+func NewWebAppWithMixin(app *WebApplication, services *ServiceCollection) *WebAppWithMixin {
+	mixin := NewMiddlewareMixin(app, services)
+	return &WebAppWithMixin{
+		app:   app,
+		mixin: mixin,
+	}
+}
+
+func (w *WebAppWithMixin) Services() abstract.ServiceCollection {
+	return w.app.Services()
+}
+
+func (w *WebAppWithMixin) Configuration() abstract.Config {
+	return w.app.Configuration()
+}
+
+func (w *WebAppWithMixin) Environment() abstract.Env {
+	return w.app.Environment()
+}
+
+func (w *WebAppWithMixin) Logging() abstract.Logger {
+	return w.app.Logging()
+}
+
+func (w *WebAppWithMixin) Use(middleware abstract.Middleware) abstract.WebApplication {
+	return w.app.Use(middleware)
+}
+
+func (w *WebAppWithMixin) UseGlobalGuards(guards ...abstract.Guard) abstract.WebApplication {
+	return w.app.UseGlobalGuards(guards...)
+}
+
+func (w *WebAppWithMixin) UseGlobalInterceptors(interceptors ...abstract.Interceptor) abstract.WebApplication {
+	return w.app.UseGlobalInterceptors(interceptors...)
+}
+
+func (w *WebAppWithMixin) UseGlobalPipes(pipes ...abstract.Pipe) abstract.WebApplication {
+	return w.app.UseGlobalPipes(pipes...)
+}
+
+func (w *WebAppWithMixin) UseGlobalFilters(filters ...abstract.ExceptionFilter) abstract.WebApplication {
+	return w.app.UseGlobalFilters(filters...)
+}
+
+func (w *WebAppWithMixin) MapGet(path string, handler any) abstract.RouteBuilder {
+	return w.app.MapGet(path, handler)
+}
+
+func (w *WebAppWithMixin) MapPost(path string, handler any) abstract.RouteBuilder {
+	return w.app.MapPost(path, handler)
+}
+
+func (w *WebAppWithMixin) MapPut(path string, handler any) abstract.RouteBuilder {
+	return w.app.MapPut(path, handler)
+}
+
+func (w *WebAppWithMixin) MapDelete(path string, handler any) abstract.RouteBuilder {
+	return w.app.MapDelete(path, handler)
+}
+
+func (w *WebAppWithMixin) MapPatch(path string, handler any) abstract.RouteBuilder {
+	return w.app.MapPatch(path, handler)
+}
+
+func (w *WebAppWithMixin) Map(method string, path string, handler any) abstract.RouteBuilder {
+	return w.app.Map(method, path, handler)
+}
+
+func (w *WebAppWithMixin) MapGroup(prefix string) abstract.RouteGroup {
+	return w.app.MapGroup(prefix)
+}
+
+func (w *WebAppWithMixin) Group(prefix string) abstract.RouteGroup {
+	return w.app.Group(prefix)
+}
+
+func (w *WebAppWithMixin) GET(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
+	return w.app.GET(path, handler)
+}
+
+func (w *WebAppWithMixin) POST(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
+	return w.app.POST(path, handler)
+}
+
+func (w *WebAppWithMixin) PUT(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
+	return w.app.PUT(path, handler)
+}
+
+func (w *WebAppWithMixin) DELETE(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
+	return w.app.DELETE(path, handler)
+}
+
+func (w *WebAppWithMixin) PATCH(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
+	return w.app.PATCH(path, handler)
+}
+
+func (w *WebAppWithMixin) OPTIONS(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
+	return w.app.OPTIONS(path, handler)
+}
+
+func (w *WebAppWithMixin) Match(req *http.Request) (abstract.Route, map[string]string) {
+	return w.app.Match(req)
+}
+
+func (w *WebAppWithMixin) UseRouting() abstract.WebApplication {
+	return w.app.UseRouting()
+}
+
+func (w *WebAppWithMixin) UseEndpoints(configure func(abstract.EndpointRouteBuilder)) abstract.WebApplication {
+	return w.app.UseEndpoints(configure)
+}
+
+func (w *WebAppWithMixin) UseAuthentication() abstract.WebApplication {
+	return w.app.UseAuthentication()
+}
+
+func (w *WebAppWithMixin) UseAuthorization() abstract.WebApplication {
+	return w.app.UseAuthorization()
+}
+
+func (w *WebAppWithMixin) Urls() []string {
+	return w.app.Urls()
+}
+
+func (w *WebAppWithMixin) Addresses() []string {
+	return w.app.Addresses()
+}
+
+func (w *WebAppWithMixin) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	w.app.ServeHTTP(res, req)
+}
+
+func (w *WebAppWithMixin) Listen(addr string) error {
+	return w.app.Listen(addr)
+}
+
+func (w *WebAppWithMixin) Run() error {
+	return w.app.Run()
+}
+
+func (w *WebAppWithMixin) RunAsync() <-chan error {
+	return w.app.RunAsync()
+}
+
+func (w *WebAppWithMixin) Start() error {
+	return w.app.Start()
+}
+
+func (w *WebAppWithMixin) StartAsync() <-chan error {
+	return w.app.StartAsync()
+}
+
+func (w *WebAppWithMixin) Stop() error {
+	return w.app.Stop()
+}
+
+func (w *WebAppWithMixin) Shutdown(ctx context.Context) error {
+	return w.app.Shutdown(ctx)
+}
+
+func (w *WebAppWithMixin) WaitForShutdown() error {
+	return w.app.WaitForShutdown()
+}
+
+func (w *WebAppWithMixin) UseCORS() abstract.MiddlewareUser {
+	return w.mixin.UseCORS()
+}
+
+func (w *WebAppWithMixin) UseRecovery() abstract.MiddlewareUser {
+	return w.mixin.UseRecovery()
+}
+
+func (w *WebAppWithMixin) UseLogging() abstract.MiddlewareUser {
+	return w.mixin.UseLogging()
+}
+
+func (w *WebAppWithMixin) UseRateLimit() abstract.MiddlewareUser {
+	return w.mixin.UseRateLimit()
+}
+
+func (w *WebAppWithMixin) UseGzip() abstract.MiddlewareUser {
+	return w.mixin.UseGzip()
+}
+
+func (w *WebAppWithMixin) UseSecurity() abstract.MiddlewareUser {
+	return w.mixin.UseSecurity()
+}
+
+func (w *WebAppWithMixin) UseRequestID() abstract.MiddlewareUser {
+	return w.mixin.UseRequestID()
+}
+
+func (w *WebAppWithMixin) UseTimeout() abstract.MiddlewareUser {
+	return w.mixin.UseTimeout()
+}
+
+func (w *WebAppWithMixin) Application() abstract.WebApplication {
+	return w.app
+}
+
+var _ abstract.WebApplication = (*WebAppWithMixin)(nil)
+var _ abstract.MiddlewareUser = (*WebAppWithMixin)(nil)
+
 // WebApplication Web应用实现
 type WebApplication struct {
 	*Application
