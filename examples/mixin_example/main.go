@@ -20,18 +20,16 @@ func main() {
 	builder.Services().AddRecovery(nil)
 	builder.Services().AddLogging(nil)
 
-	app := core.NewWebAppWithMixin(
-		builder.Build().(*core.WebApplication),
-		builder.Services().(*core.ServiceCollection),
-	)
+	app := builder.Build()
 
-	app.UseCORS().
+	webApp := app.(*core.WebApplication)
+	webApp.UseCORS().
 		UseRecovery().
 		UseLogging()
 
 	app.MapGet("/", func(ctx abstract.Context) error {
 		return ctx.JSON(http.StatusOK, map[string]string{
-			"message": "Hello, Mixin + Wire!",
+			"message": "Hello, Mixin Code Generation!",
 		})
 	})
 
