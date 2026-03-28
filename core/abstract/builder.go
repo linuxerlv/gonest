@@ -43,7 +43,6 @@ type WebApplicationBuilder interface {
 type WebApplication interface {
 	Application
 	Router
-	MiddlewareUser
 	Use(middleware Middleware) WebApplication
 	UseGlobalGuards(guards ...Guard) WebApplication
 	UseGlobalInterceptors(interceptors ...Interceptor) WebApplication
@@ -66,16 +65,17 @@ type WebApplication interface {
 	Listen(addr string) error
 }
 
-// MiddlewareUser 中间件使用接口
+// MiddlewareUser 中间件使用接口（Mixin）
 type MiddlewareUser interface {
-	UseCORS() WebApplication
-	UseRecovery() WebApplication
-	UseLogging() WebApplication
-	UseRateLimit() WebApplication
-	UseGzip() WebApplication
-	UseSecurity() WebApplication
-	UseRequestID() WebApplication
-	UseTimeout() WebApplication
+	UseCORS() MiddlewareUser
+	UseRecovery() MiddlewareUser
+	UseLogging() MiddlewareUser
+	UseRateLimit() MiddlewareUser
+	UseGzip() MiddlewareUser
+	UseSecurity() MiddlewareUser
+	UseRequestID() MiddlewareUser
+	UseTimeout() MiddlewareUser
+	Application() WebApplication
 }
 
 // EndpointRouteBuilder 端点路由构建器接口

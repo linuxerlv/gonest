@@ -443,6 +443,86 @@ func (b *WebApplicationBuilder) UseLogger(log abstract.Logger) *WebApplicationBu
 
 var _ abstract.WebApplicationBuilder = (*WebApplicationBuilder)(nil)
 
+// MiddlewareMixin 中间件 Mixin
+type MiddlewareMixin struct {
+	app      *WebApplication
+	services *ServiceCollection
+}
+
+func NewMiddlewareMixin(app *WebApplication, services *ServiceCollection) *MiddlewareMixin {
+	return &MiddlewareMixin{app: app, services: services}
+}
+
+func (m *MiddlewareMixin) UseCORS() abstract.MiddlewareUser {
+	cfg := m.services.GetService(reflect.TypeOf("cors"))
+	if mw := createCORSMiddleware(cfg); mw != nil {
+		m.app.Application.middlewares = append(m.app.Application.middlewares, mw)
+	}
+	return m
+}
+
+func (m *MiddlewareMixin) UseRecovery() abstract.MiddlewareUser {
+	cfg := m.services.GetService(reflect.TypeOf("recovery"))
+	if mw := createRecoveryMiddleware(cfg); mw != nil {
+		m.app.Application.middlewares = append(m.app.Application.middlewares, mw)
+	}
+	return m
+}
+
+func (m *MiddlewareMixin) UseLogging() abstract.MiddlewareUser {
+	cfg := m.services.GetService(reflect.TypeOf("logging"))
+	if mw := createLoggingMiddleware(cfg); mw != nil {
+		m.app.Application.middlewares = append(m.app.Application.middlewares, mw)
+	}
+	return m
+}
+
+func (m *MiddlewareMixin) UseRateLimit() abstract.MiddlewareUser {
+	cfg := m.services.GetService(reflect.TypeOf("ratelimit"))
+	if mw := createRateLimitMiddleware(cfg); mw != nil {
+		m.app.Application.middlewares = append(m.app.Application.middlewares, mw)
+	}
+	return m
+}
+
+func (m *MiddlewareMixin) UseGzip() abstract.MiddlewareUser {
+	cfg := m.services.GetService(reflect.TypeOf("gzip"))
+	if mw := createGzipMiddleware(cfg); mw != nil {
+		m.app.Application.middlewares = append(m.app.Application.middlewares, mw)
+	}
+	return m
+}
+
+func (m *MiddlewareMixin) UseSecurity() abstract.MiddlewareUser {
+	cfg := m.services.GetService(reflect.TypeOf("security"))
+	if mw := createSecurityMiddleware(cfg); mw != nil {
+		m.app.Application.middlewares = append(m.app.Application.middlewares, mw)
+	}
+	return m
+}
+
+func (m *MiddlewareMixin) UseRequestID() abstract.MiddlewareUser {
+	cfg := m.services.GetService(reflect.TypeOf("requestid"))
+	if mw := createRequestIDMiddleware(cfg); mw != nil {
+		m.app.Application.middlewares = append(m.app.Application.middlewares, mw)
+	}
+	return m
+}
+
+func (m *MiddlewareMixin) UseTimeout() abstract.MiddlewareUser {
+	cfg := m.services.GetService(reflect.TypeOf("timeout"))
+	if mw := createTimeoutMiddleware(cfg); mw != nil {
+		m.app.Application.middlewares = append(m.app.Application.middlewares, mw)
+	}
+	return m
+}
+
+func (m *MiddlewareMixin) Application() abstract.WebApplication {
+	return m.app
+}
+
+var _ abstract.MiddlewareUser = (*MiddlewareMixin)(nil)
+
 // WebApplication Web应用实现
 type WebApplication struct {
 	*Application
@@ -455,70 +535,6 @@ func (a *WebApplication) Services() abstract.ServiceCollection {
 
 func (a *WebApplication) Use(middleware abstract.Middleware) abstract.WebApplication {
 	a.Application.middlewares = append(a.Application.middlewares, middleware)
-	return a
-}
-
-func (a *WebApplication) UseCORS() abstract.WebApplication {
-	cfg := a.Application.services.GetService(reflect.TypeOf("cors"))
-	if m := createCORSMiddleware(cfg); m != nil {
-		a.Application.middlewares = append(a.Application.middlewares, m)
-	}
-	return a
-}
-
-func (a *WebApplication) UseRecovery() abstract.WebApplication {
-	cfg := a.Application.services.GetService(reflect.TypeOf("recovery"))
-	if m := createRecoveryMiddleware(cfg); m != nil {
-		a.Application.middlewares = append(a.Application.middlewares, m)
-	}
-	return a
-}
-
-func (a *WebApplication) UseLogging() abstract.WebApplication {
-	cfg := a.Application.services.GetService(reflect.TypeOf("logging"))
-	if m := createLoggingMiddleware(cfg); m != nil {
-		a.Application.middlewares = append(a.Application.middlewares, m)
-	}
-	return a
-}
-
-func (a *WebApplication) UseRateLimit() abstract.WebApplication {
-	cfg := a.Application.services.GetService(reflect.TypeOf("ratelimit"))
-	if m := createRateLimitMiddleware(cfg); m != nil {
-		a.Application.middlewares = append(a.Application.middlewares, m)
-	}
-	return a
-}
-
-func (a *WebApplication) UseGzip() abstract.WebApplication {
-	cfg := a.Application.services.GetService(reflect.TypeOf("gzip"))
-	if m := createGzipMiddleware(cfg); m != nil {
-		a.Application.middlewares = append(a.Application.middlewares, m)
-	}
-	return a
-}
-
-func (a *WebApplication) UseSecurity() abstract.WebApplication {
-	cfg := a.Application.services.GetService(reflect.TypeOf("security"))
-	if m := createSecurityMiddleware(cfg); m != nil {
-		a.Application.middlewares = append(a.Application.middlewares, m)
-	}
-	return a
-}
-
-func (a *WebApplication) UseRequestID() abstract.WebApplication {
-	cfg := a.Application.services.GetService(reflect.TypeOf("requestid"))
-	if m := createRequestIDMiddleware(cfg); m != nil {
-		a.Application.middlewares = append(a.Application.middlewares, m)
-	}
-	return a
-}
-
-func (a *WebApplication) UseTimeout() abstract.WebApplication {
-	cfg := a.Application.services.GetService(reflect.TypeOf("timeout"))
-	if m := createTimeoutMiddleware(cfg); m != nil {
-		a.Application.middlewares = append(a.Application.middlewares, m)
-	}
 	return a
 }
 

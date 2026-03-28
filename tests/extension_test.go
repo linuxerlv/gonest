@@ -22,7 +22,8 @@ func TestExtension_UseCORS(t *testing.T) {
 
 	app := builder.Build()
 
-	app.UseCORS()
+	mixin := core.NewMiddlewareMixin(app.(*core.WebApplication), app.Services().(*core.ServiceCollection))
+	mixin.UseCORS()
 
 	app.MapGet("/test", func(ctx abstract.Context) error {
 		return ctx.JSON(http.StatusOK, map[string]string{"status": "ok"})
@@ -52,7 +53,8 @@ func TestExtension_ChainedMiddleware(t *testing.T) {
 
 	app := builder.Build()
 
-	app.UseRecovery().
+	mixin := core.NewMiddlewareMixin(app.(*core.WebApplication), app.Services().(*core.ServiceCollection))
+	mixin.UseRecovery().
 		UseLogging().
 		UseCORS().
 		UseSecurity().
@@ -86,7 +88,8 @@ func TestExtension_AllMiddlewares(t *testing.T) {
 
 	app := builder.Build()
 
-	app.UseCORS().
+	mixin := core.NewMiddlewareMixin(app.(*core.WebApplication), app.Services().(*core.ServiceCollection))
+	mixin.UseCORS().
 		UseRecovery().
 		UseLogging().
 		UseRateLimit().
@@ -106,5 +109,17 @@ func TestExtension_AllMiddlewares(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
+func TestMixin_Application(t *testing.T) {
+	builder := core.NewWebApplicationBuilder()
+	app := builder.Build()
+
+	mixin := core.NewMiddlewareMixin(app.(*core.WebApplication), app.Services().(*core.ServiceCollection))
+
+	returnedApp := mixin.Application()
+	if returnedApp != app {
+		t.Error("Application() should return the same app instance")
 	}
 }
