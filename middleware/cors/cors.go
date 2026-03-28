@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/linuxerlv/gonest/core"
 	"github.com/linuxerlv/gonest/core/abstract"
 )
 
@@ -51,8 +50,7 @@ func New(cfg *Config) abstract.Middleware {
 			return next()
 		}
 
-		hc := ctx.(*core.HttpContext)
-		w := hc.ResponseWriter()
+		w := ctx.ResponseWriter()
 
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 

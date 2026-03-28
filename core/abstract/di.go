@@ -33,10 +33,23 @@ type ServiceRegistrar interface {
 	AddTransient(serviceType reflect.Type, factory any) ServiceRegistrar
 }
 
+// MiddlewareRegistrar 中间件注册接口
+type MiddlewareRegistrar interface {
+	AddCORS(config any) MiddlewareRegistrar
+	AddRecovery(config any) MiddlewareRegistrar
+	AddLogging(config any) MiddlewareRegistrar
+	AddRateLimit(config any) MiddlewareRegistrar
+	AddGzip(config any) MiddlewareRegistrar
+	AddSecurity(config any) MiddlewareRegistrar
+	AddRequestID(config any) MiddlewareRegistrar
+	AddTimeout(config any) MiddlewareRegistrar
+}
+
 // ServiceCollection 服务集合接口（组合）
 type ServiceCollection interface {
 	ServiceResolver
 	ServiceRegistrar
+	MiddlewareRegistrar
 }
 
 // Scope 作用域接口

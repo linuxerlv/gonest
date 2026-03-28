@@ -127,6 +127,94 @@ func (s *ServiceCollection) GetRequiredService(serviceType reflect.Type) any {
 	return service
 }
 
+func (s *ServiceCollection) AddCORS(config any) abstract.MiddlewareRegistrar {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.descriptors[reflect.TypeOf("cors")] = &ServiceDescriptor{
+		serviceType: reflect.TypeOf("cors"),
+		instance:    config,
+		lifetime:    abstract.Singleton,
+	}
+	return s
+}
+
+func (s *ServiceCollection) AddRecovery(config any) abstract.MiddlewareRegistrar {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.descriptors[reflect.TypeOf("recovery")] = &ServiceDescriptor{
+		serviceType: reflect.TypeOf("recovery"),
+		instance:    config,
+		lifetime:    abstract.Singleton,
+	}
+	return s
+}
+
+func (s *ServiceCollection) AddLogging(config any) abstract.MiddlewareRegistrar {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.descriptors[reflect.TypeOf("logging")] = &ServiceDescriptor{
+		serviceType: reflect.TypeOf("logging"),
+		instance:    config,
+		lifetime:    abstract.Singleton,
+	}
+	return s
+}
+
+func (s *ServiceCollection) AddRateLimit(config any) abstract.MiddlewareRegistrar {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.descriptors[reflect.TypeOf("ratelimit")] = &ServiceDescriptor{
+		serviceType: reflect.TypeOf("ratelimit"),
+		instance:    config,
+		lifetime:    abstract.Singleton,
+	}
+	return s
+}
+
+func (s *ServiceCollection) AddGzip(config any) abstract.MiddlewareRegistrar {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.descriptors[reflect.TypeOf("gzip")] = &ServiceDescriptor{
+		serviceType: reflect.TypeOf("gzip"),
+		instance:    config,
+		lifetime:    abstract.Singleton,
+	}
+	return s
+}
+
+func (s *ServiceCollection) AddSecurity(config any) abstract.MiddlewareRegistrar {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.descriptors[reflect.TypeOf("security")] = &ServiceDescriptor{
+		serviceType: reflect.TypeOf("security"),
+		instance:    config,
+		lifetime:    abstract.Singleton,
+	}
+	return s
+}
+
+func (s *ServiceCollection) AddRequestID(config any) abstract.MiddlewareRegistrar {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.descriptors[reflect.TypeOf("requestid")] = &ServiceDescriptor{
+		serviceType: reflect.TypeOf("requestid"),
+		instance:    config,
+		lifetime:    abstract.Singleton,
+	}
+	return s
+}
+
+func (s *ServiceCollection) AddTimeout(config any) abstract.MiddlewareRegistrar {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.descriptors[reflect.TypeOf("timeout")] = &ServiceDescriptor{
+		serviceType: reflect.TypeOf("timeout"),
+		instance:    config,
+		lifetime:    abstract.Singleton,
+	}
+	return s
+}
+
 func AddSingleton[T any](s *ServiceCollection, instance T) *ServiceCollection {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -368,6 +456,118 @@ func (a *WebApplication) Services() abstract.ServiceCollection {
 func (a *WebApplication) Use(middleware abstract.Middleware) abstract.WebApplication {
 	a.Application.middlewares = append(a.Application.middlewares, middleware)
 	return a
+}
+
+func (a *WebApplication) UseCORS() abstract.WebApplication {
+	cfg := a.Application.services.GetService(reflect.TypeOf("cors"))
+	if m := createCORSMiddleware(cfg); m != nil {
+		a.Application.middlewares = append(a.Application.middlewares, m)
+	}
+	return a
+}
+
+func (a *WebApplication) UseRecovery() abstract.WebApplication {
+	cfg := a.Application.services.GetService(reflect.TypeOf("recovery"))
+	if m := createRecoveryMiddleware(cfg); m != nil {
+		a.Application.middlewares = append(a.Application.middlewares, m)
+	}
+	return a
+}
+
+func (a *WebApplication) UseLogging() abstract.WebApplication {
+	cfg := a.Application.services.GetService(reflect.TypeOf("logging"))
+	if m := createLoggingMiddleware(cfg); m != nil {
+		a.Application.middlewares = append(a.Application.middlewares, m)
+	}
+	return a
+}
+
+func (a *WebApplication) UseRateLimit() abstract.WebApplication {
+	cfg := a.Application.services.GetService(reflect.TypeOf("ratelimit"))
+	if m := createRateLimitMiddleware(cfg); m != nil {
+		a.Application.middlewares = append(a.Application.middlewares, m)
+	}
+	return a
+}
+
+func (a *WebApplication) UseGzip() abstract.WebApplication {
+	cfg := a.Application.services.GetService(reflect.TypeOf("gzip"))
+	if m := createGzipMiddleware(cfg); m != nil {
+		a.Application.middlewares = append(a.Application.middlewares, m)
+	}
+	return a
+}
+
+func (a *WebApplication) UseSecurity() abstract.WebApplication {
+	cfg := a.Application.services.GetService(reflect.TypeOf("security"))
+	if m := createSecurityMiddleware(cfg); m != nil {
+		a.Application.middlewares = append(a.Application.middlewares, m)
+	}
+	return a
+}
+
+func (a *WebApplication) UseRequestID() abstract.WebApplication {
+	cfg := a.Application.services.GetService(reflect.TypeOf("requestid"))
+	if m := createRequestIDMiddleware(cfg); m != nil {
+		a.Application.middlewares = append(a.Application.middlewares, m)
+	}
+	return a
+}
+
+func (a *WebApplication) UseTimeout() abstract.WebApplication {
+	cfg := a.Application.services.GetService(reflect.TypeOf("timeout"))
+	if m := createTimeoutMiddleware(cfg); m != nil {
+		a.Application.middlewares = append(a.Application.middlewares, m)
+	}
+	return a
+}
+
+func createCORSMiddleware(cfg any) abstract.Middleware {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
+		return next()
+	})
+}
+
+func createRecoveryMiddleware(cfg any) abstract.Middleware {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
+		return next()
+	})
+}
+
+func createLoggingMiddleware(cfg any) abstract.Middleware {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
+		return next()
+	})
+}
+
+func createRateLimitMiddleware(cfg any) abstract.Middleware {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
+		return next()
+	})
+}
+
+func createGzipMiddleware(cfg any) abstract.Middleware {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
+		return next()
+	})
+}
+
+func createSecurityMiddleware(cfg any) abstract.Middleware {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
+		return next()
+	})
+}
+
+func createRequestIDMiddleware(cfg any) abstract.Middleware {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
+		return next()
+	})
+}
+
+func createTimeoutMiddleware(cfg any) abstract.Middleware {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
+		return next()
+	})
 }
 
 func (a *WebApplication) UseGlobalGuards(guards ...abstract.Guard) abstract.WebApplication {

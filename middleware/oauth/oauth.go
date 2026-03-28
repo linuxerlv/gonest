@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/linuxerlv/gonest/core"
 	"github.com/linuxerlv/gonest/core/abstract"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -76,8 +75,7 @@ func setupProvider(cfg ProviderConfig) {
 
 func (m *OAuthMiddleware) BeginAuthHandler(provider string) abstract.RouteHandler {
 	return func(ctx abstract.Context) error {
-		hc := ctx.(*core.HttpContext)
-		w := hc.ResponseWriter()
+		w := ctx.ResponseWriter()
 		r := ctx.Request()
 
 		q := r.URL.Query()
@@ -91,8 +89,7 @@ func (m *OAuthMiddleware) BeginAuthHandler(provider string) abstract.RouteHandle
 
 func (m *OAuthMiddleware) CallbackHandler(provider string) abstract.RouteHandler {
 	return func(ctx abstract.Context) error {
-		hc := ctx.(*core.HttpContext)
-		w := hc.ResponseWriter()
+		w := ctx.ResponseWriter()
 		r := ctx.Request()
 
 		q := r.URL.Query()
@@ -121,8 +118,7 @@ func (m *OAuthMiddleware) CallbackHandler(provider string) abstract.RouteHandler
 
 func (m *OAuthMiddleware) LogoutHandler() abstract.RouteHandler {
 	return func(ctx abstract.Context) error {
-		hc := ctx.(*core.HttpContext)
-		w := hc.ResponseWriter()
+		w := ctx.ResponseWriter()
 		r := ctx.Request()
 
 		err := gothic.Logout(w, r)
@@ -153,8 +149,7 @@ func (m *OAuthMiddleware) Handle(ctx abstract.Context, next func() error) error 
 		return next()
 	}
 
-	hc := ctx.(*core.HttpContext)
-	w := hc.ResponseWriter()
+	w := ctx.ResponseWriter()
 	r := ctx.Request()
 
 	user, err := gothic.CompleteUserAuth(w, r)

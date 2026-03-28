@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
-	"github.com/linuxerlv/gonest/core"
 	"github.com/linuxerlv/gonest/core/abstract"
 )
 
@@ -62,12 +61,11 @@ func (m *SessionMiddleware) Handle(ctx abstract.Context, next func() error) erro
 
 	var handlerErr error
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx.(*core.HttpContext).SetRequest(r)
+		ctx.SetRequest(r)
 		handlerErr = next()
 	})
 
-	hc := ctx.(*core.HttpContext)
-	sm.LoadAndSave(handler).ServeHTTP(hc.ResponseWriter(), ctx.Request())
+	sm.LoadAndSave(handler).ServeHTTP(ctx.ResponseWriter(), ctx.Request())
 
 	return handlerErr
 }

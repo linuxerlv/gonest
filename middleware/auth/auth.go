@@ -4,7 +4,6 @@ import (
 	"crypto/subtle"
 	"strings"
 
-	"github.com/linuxerlv/gonest/core"
 	"github.com/linuxerlv/gonest/core/abstract"
 )
 
@@ -284,8 +283,7 @@ func NewBasicAuth(config *BasicAuthConfig) abstract.Middleware {
 	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
 		username, password, ok := ctx.Request().BasicAuth()
 		if !ok {
-			hc := ctx.(*core.HttpContext)
-			hc.ResponseWriter().Header().Set("WWW-Authenticate", `Basic realm="`+config.Realm+`"`)
+			ctx.ResponseWriter().Header().Set("WWW-Authenticate", `Basic realm="`+config.Realm+`"`)
 			return abstract.Unauthorized("authentication required")
 		}
 

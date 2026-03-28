@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/linuxerlv/gonest/core"
 	"github.com/linuxerlv/gonest/core/abstract"
 )
 
@@ -39,8 +38,7 @@ func New(cfg *Config) abstract.Middleware {
 		}
 		ctx.Set("request-id", requestID)
 
-		hc := ctx.(*core.HttpContext)
-		hc.ResponseWriter().Header().Set(cfg.HeaderName, requestID)
+		ctx.ResponseWriter().Header().Set(cfg.HeaderName, requestID)
 
 		return next()
 	})

@@ -3,7 +3,6 @@ package security
 import (
 	"fmt"
 
-	"github.com/linuxerlv/gonest/core"
 	"github.com/linuxerlv/gonest/core/abstract"
 )
 
@@ -43,8 +42,7 @@ func New(cfg *Config) abstract.Middleware {
 	}
 
 	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
-		hc := ctx.(*core.HttpContext)
-		w := hc.ResponseWriter()
+		w := ctx.ResponseWriter()
 
 		if cfg.XSSProtection {
 			w.Header().Set("X-XSS-Protection", "1; mode=block")

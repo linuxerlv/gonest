@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/linuxerlv/gonest/core"
 	"github.com/linuxerlv/gonest/core/abstract"
 )
 
@@ -81,8 +80,7 @@ func (m *RefreshMiddleware) Handle(ctx abstract.Context, next func() error) erro
 			return err
 		}
 
-		hc := ctx.(*core.HttpContext)
-		hc.ResponseWriter().Header().Set(m.config.RefreshHeaderName, newTokenPair.AccessToken)
+		ctx.ResponseWriter().Header().Set(m.config.RefreshHeaderName, newTokenPair.AccessToken)
 	}
 
 	return nil

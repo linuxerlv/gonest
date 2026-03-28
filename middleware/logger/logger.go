@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/linuxerlv/gonest/core"
 	"github.com/linuxerlv/gonest/core/abstract"
 )
 
@@ -45,10 +44,8 @@ func New(cfg *Config) abstract.Middleware {
 			log.Print(cfg.Formatter(ctx, latency))
 		} else {
 			status := http.StatusOK
-			if hc, ok := ctx.(*core.HttpContext); ok {
-				if w, ok := hc.ResponseWriter().(interface{ Status() int }); ok {
-					status = w.Status()
-				}
+			if w, ok := ctx.ResponseWriter().(interface{ Status() int }); ok {
+				status = w.Status()
 			}
 			log.Printf("[HTTP] %s %s %d %v", ctx.Method(), path, status, latency)
 		}
@@ -80,10 +77,8 @@ func NewWithLogger(log ContextLogger, cfg *Config) abstract.Middleware {
 		}
 
 		status := http.StatusOK
-		if hc, ok := ctx.(*core.HttpContext); ok {
-			if w, ok := hc.ResponseWriter().(interface{ Status() int }); ok {
-				status = w.Status()
-			}
+		if w, ok := ctx.ResponseWriter().(interface{ Status() int }); ok {
+			status = w.Status()
 		}
 
 		if err != nil {
