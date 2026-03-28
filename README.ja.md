@@ -48,7 +48,7 @@ func main() {
     builder.Services().AddSingleton(&MyService{})
 
     // アプリケーションをビルド
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // ミドルウェアを使用（拡張メソッド）
     extensions.UseRecovery(app, nil)
@@ -91,7 +91,7 @@ func main() {
     })
 
     // アプリケーションをビルド
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // DIコンテナからサービスを取得
     service := core.GetService[*MyService](app.Services())
@@ -264,7 +264,7 @@ import "github.com/linuxerlv/gonest/core"
 
 // Webアプリケーション（HTTPサーバー付き）
 builder := core.CreateBuilder()           // WebApplicationビルダーを作成
-app := builder.BuildWeb()                 // WebApplicationをビルド
+app := builder.Build()                 // WebApplicationをビルド
 app.Run()                                 // サーバーを起動
 
 // 汎用アプリケーション（非 Web シナリオ）

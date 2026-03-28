@@ -237,9 +237,9 @@ func TestWireWebApplicationBuilder(t *testing.T) {
 	}
 }
 
-func TestWireWebApplicationBuilder_BuildWeb(t *testing.T) {
+func TestWireWebApplicationBuilder_Build(t *testing.T) {
 	builder := core.NewWireWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	if app == nil {
 		t.Fatal("Expected web application to be built")

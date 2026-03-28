@@ -48,7 +48,7 @@ func main() {
     builder.Services().AddSingleton(&MyService{})
 
     // 构建应用
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 使用中间件（扩展方法）
     extensions.UseRecovery(app, nil)
@@ -91,7 +91,7 @@ func main() {
     })
 
     // 构建应用
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 从 DI 容器获取服务
     service := core.GetService[*MyService](app.Services())
@@ -264,7 +264,7 @@ import "github.com/linuxerlv/gonest/core"
 
 // Web 应用（带 HTTP 服务器）
 builder := core.CreateBuilder()           // 创建 WebApplication Builder
-app := builder.BuildWeb()                 // 构建 WebApplication
+app := builder.Build()                 // 构建 WebApplication
 app.Run()                                 // 启动服务器
 
 // 通用应用（非 Web 场景）

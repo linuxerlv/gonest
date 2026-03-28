@@ -168,9 +168,9 @@ func TestWebApplicationBuilder_New(t *testing.T) {
 	}
 }
 
-func TestWebApplicationBuilder_BuildWeb(t *testing.T) {
+func TestWebApplicationBuilder_Build(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	if app == nil {
 		t.Fatal("Expected web application to be built")
@@ -183,7 +183,7 @@ func TestWebApplicationBuilder_BuildWeb(t *testing.T) {
 
 func TestWebApplication_Use(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	middlewareCalled := false
 	app.Use(abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
@@ -206,7 +206,7 @@ func TestWebApplication_Use(t *testing.T) {
 
 func TestWebApplication_MapGet(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	handlerCalled := false
 	app.MapGet("/test", func(ctx abstract.Context) error {
@@ -230,7 +230,7 @@ func TestWebApplication_MapGet(t *testing.T) {
 
 func TestWebApplication_MapPost(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	handlerCalled := false
 	app.MapPost("/create", func(ctx abstract.Context) error {
@@ -546,7 +546,7 @@ func TestInterceptorFunc(t *testing.T) {
 
 func TestRouter_Routes(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	handlerCalled := false
 	app.MapGet("/test", func(ctx abstract.Context) error {
@@ -566,7 +566,7 @@ func TestRouter_Routes(t *testing.T) {
 
 func TestRouter_Group(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	handlerCalled := false
 	api := app.MapGroup("/api")

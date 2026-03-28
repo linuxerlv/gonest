@@ -59,7 +59,7 @@ func TestRateLimit_New_WithConfig(t *testing.T) {
 
 func TestRateLimit_Middleware_AllowsRequest(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(ratelimit.New(&ratelimit.Config{
 		Limit:  10,
@@ -88,7 +88,7 @@ func TestRateLimit_Middleware_AllowsRequest(t *testing.T) {
 
 func TestRateLimit_Middleware_BlocksExcessRequests(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	limiter := ratelimit.NewLimiter(2, time.Minute)
 
@@ -121,7 +121,7 @@ func TestRateLimit_Middleware_BlocksExcessRequests(t *testing.T) {
 
 func TestRateLimit_Middleware_SkipFunc(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(ratelimit.New(&ratelimit.Config{
 		Limit:  1,

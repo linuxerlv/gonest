@@ -286,7 +286,7 @@ func ProvideWebApplication(
 	appController *controllers.AppController,
 	loggerMiddleware gonest.Middleware,
 ) *core.WebApplication {
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(loggerMiddleware)
 

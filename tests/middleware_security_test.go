@@ -70,7 +70,7 @@ func TestSecurity_New_WithConfig(t *testing.T) {
 
 func TestSecurity_Middleware_SetsHeaders(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(security.New(nil))
 
@@ -106,7 +106,7 @@ func TestSecurity_Middleware_SetsHeaders(t *testing.T) {
 
 func TestSecurity_Middleware_CustomConfig(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(security.New(&security.Config{
 		XSSProtection:         false,

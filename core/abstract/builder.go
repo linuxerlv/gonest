@@ -31,9 +31,12 @@ type Application interface {
 
 // WebApplicationBuilder Web应用构建器接口
 type WebApplicationBuilder interface {
-	ApplicationBuilder
+	Services() ServiceCollection
+	Configuration() Config
+	Environment() Env
+	Logging() Logger
 	WebHost() WebHostBuilder
-	BuildWeb() WebApplication
+	Build() WebApplication
 }
 
 // WebApplication Web应用接口

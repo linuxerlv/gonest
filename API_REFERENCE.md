@@ -227,7 +227,7 @@ type IWebApplication interface {
 type IWebApplicationBuilder interface {
     IApplicationBuilder
     WebHost() IWebHostBuilder
-    BuildWeb() IWebApplication
+    Build() IWebApplication
 }
 
 // IEndpointRouteBuilder 端点路由构建器接口
@@ -295,7 +295,7 @@ type WebApplicationBuilder struct {
     *ApplicationBuilder
     Host *HostBuilder
     // 额外提供 WebHost() 方法
-    // BuildWeb() IWebApplication
+    // Build() IWebApplication
 }
 
 // EndpointRouteBuilder - 端点路由构建器
@@ -346,7 +346,7 @@ builder.Services().AddScoped(func(s abstract.ServiceCollectionAbstract) *DbConte
 })
 
 // 构建 Web 应用
-app := builder.BuildWeb()
+app := builder.Build()
 
 // 使用中间件（扩展方法）
 extensions.UseRecovery(app, nil)
@@ -521,7 +521,7 @@ import (
 )
 
 builder := core.CreateBuilder()
-app := builder.BuildWeb()
+app := builder.Build()
 
 // 使用扩展方法添加中间件
 extensions.UseRecovery(app, nil)

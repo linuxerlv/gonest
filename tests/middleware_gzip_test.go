@@ -44,7 +44,7 @@ func TestGzip_New_WithConfig(t *testing.T) {
 
 func TestGzip_Middleware_NoGzipHeader(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(gzip.New(nil))
 
@@ -66,7 +66,7 @@ func TestGzip_Middleware_NoGzipHeader(t *testing.T) {
 
 func TestGzip_Middleware_WithGzipHeader(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(gzip.New(nil))
 

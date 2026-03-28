@@ -12,7 +12,7 @@ import (
 
 func TestUseCORS(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
 		AllowOrigins:     []string{"http://example.com"},
@@ -38,7 +38,7 @@ func TestUseCORS(t *testing.T) {
 
 func TestUseCORS_NilOptions(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseCORS(app, nil)
 
@@ -58,7 +58,7 @@ func TestUseCORS_NilOptions(t *testing.T) {
 
 func TestUseRecovery(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseRecovery(app, &extensions.RecoveryMiddlewareOptions{
 		PrintStack: true,
@@ -80,7 +80,7 @@ func TestUseRecovery(t *testing.T) {
 
 func TestUseRecovery_NilOptions(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseRecovery(app, nil)
 
@@ -100,7 +100,7 @@ func TestUseRecovery_NilOptions(t *testing.T) {
 
 func TestUseLogging(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseLogging(app, &extensions.LoggingMiddlewareOptions{
 		SkipPaths: []string{"/health"},
@@ -122,7 +122,7 @@ func TestUseLogging(t *testing.T) {
 
 func TestUseLogging_NilOptions(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseLogging(app, nil)
 
@@ -142,7 +142,7 @@ func TestUseLogging_NilOptions(t *testing.T) {
 
 func TestUseRateLimit(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseRateLimit(app, &extensions.RateLimitMiddlewareOptions{
 		Limit:  10,
@@ -165,7 +165,7 @@ func TestUseRateLimit(t *testing.T) {
 
 func TestUseRateLimit_NilOptions(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseRateLimit(app, nil)
 
@@ -185,7 +185,7 @@ func TestUseRateLimit_NilOptions(t *testing.T) {
 
 func TestUseGzip(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseGzip(app, &extensions.GzipMiddlewareOptions{
 		Level: 6,
@@ -208,7 +208,7 @@ func TestUseGzip(t *testing.T) {
 
 func TestUseGzip_NilOptions(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseGzip(app, nil)
 
@@ -228,7 +228,7 @@ func TestUseGzip_NilOptions(t *testing.T) {
 
 func TestUseSecurity(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseSecurity(app, &extensions.SecurityMiddlewareOptions{
 		XSSProtection:      true,
@@ -252,7 +252,7 @@ func TestUseSecurity(t *testing.T) {
 
 func TestUseSecurity_NilOptions(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseSecurity(app, nil)
 
@@ -272,7 +272,7 @@ func TestUseSecurity_NilOptions(t *testing.T) {
 
 func TestUseRequestID(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseRequestID(app, &extensions.RequestIDMiddlewareOptions{
 		HeaderName: "X-Request-ID",
@@ -294,7 +294,7 @@ func TestUseRequestID(t *testing.T) {
 
 func TestUseRequestID_NilOptions(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseRequestID(app, nil)
 
@@ -314,7 +314,7 @@ func TestUseRequestID_NilOptions(t *testing.T) {
 
 func TestUseTimeout(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseTimeout(app, &extensions.TimeoutMiddlewareOptions{
 		Timeout: 30,
@@ -336,7 +336,7 @@ func TestUseTimeout(t *testing.T) {
 
 func TestUseTimeout_NilOptions(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	extensions.UseTimeout(app, nil)
 

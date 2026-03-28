@@ -319,11 +319,7 @@ func (b *WebApplicationBuilder) WebHost() abstract.WebHostBuilder {
 	return b.Host
 }
 
-func (b *WebApplicationBuilder) Build() abstract.Application {
-	return b.BuildWeb()
-}
-
-func (b *WebApplicationBuilder) BuildWeb() abstract.WebApplication {
+func (b *WebApplicationBuilder) Build() abstract.WebApplication {
 	app := &WebApplication{
 		Application: &Application{
 			config:       b.configuration,
@@ -599,7 +595,7 @@ func CreateBuilder(args ...string) *WebApplicationBuilder {
 
 // CreateApplication 创建 WebApplication
 func CreateApplication(args ...string) *WebApplication {
-	return CreateBuilder(args...).BuildWeb().(*WebApplication)
+	return CreateBuilder(args...).Build().(*WebApplication)
 }
 
 // CreateApplicationBuilder 创建通用 Application Builder（用于非 Web 场景）

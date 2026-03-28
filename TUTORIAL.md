@@ -82,7 +82,7 @@ func main() {
     builder := core.CreateBuilder()
 
     // 第二步：构建应用
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 第三步：使用中间件（可选）
     extensions.UseRecovery(app, nil)
@@ -180,7 +180,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // GET：获取数据（比如查看用户列表）
     app.MapGet("/users", func(ctx abstract.ContextAbstract) error {
@@ -228,7 +228,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // :id 是路径参数，可以匹配任何值
     app.MapGet("/users/:id", func(ctx abstract.ContextAbstract) error {
@@ -267,7 +267,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     app.MapGet("/search", func(ctx abstract.ContextAbstract) error {
         // 用 Query 方法获取参数
@@ -298,7 +298,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 创建一个路由组，前缀是 "/api/v1"
     api := app.Group("/api/v1")
@@ -330,7 +330,7 @@ func main() {
 | 功能 | 方法 | 示例 |
 |------|------|------|
 | 创建构建器 | `core.CreateBuilder()` | `builder := core.CreateBuilder()` |
-| 构建应用 | `builder.BuildWeb()` | `app := builder.BuildWeb()` |
+| 构建应用 | `builder.Build()` | `app := builder.Build()` |
 | 定义 GET 路由 | `app.MapGet()` | `app.MapGet("/hello", handler)` |
 | 定义 POST 路由 | `app.MapPost()` | `app.MapPost("/users", handler)` |
 | 获取路径参数 | `ctx.Param()` | `ctx.Param("id")` |
@@ -361,7 +361,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     app.MapGet("/info", func(ctx abstract.ContextAbstract) error {
         // 获取请求方法（GET、POST等）
@@ -417,7 +417,7 @@ type User struct {
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     app.MapPost("/users", func(ctx abstract.ContextAbstract) error {
         // 创建一个空的 User 结构体
@@ -463,7 +463,7 @@ type User struct {
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     app.MapGet("/user", func(ctx abstract.ContextAbstract) error {
         // 创建一个用户数据
@@ -529,7 +529,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 第一个处理函数存储数据
     app.MapGet("/test", func(ctx abstract.ContextAbstract) error {
@@ -598,7 +598,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 第一个中间件
     app.Use(abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
@@ -654,7 +654,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 添加 Recovery 中间件（使用扩展方法）
     extensions.UseRecovery(app, nil)
@@ -685,7 +685,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 配置 CORS（使用扩展方法）
     extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
@@ -719,7 +719,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 每分钟最多 10 次请求（使用扩展方法）
     extensions.UseRateLimit(app, &extensions.RateLimitMiddlewareOptions{
@@ -786,7 +786,7 @@ func AuthMiddleware() abstract.MiddlewareAbstract {
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 使用自定义中间件
     app.Use(TimingMiddleware())
@@ -814,7 +814,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 检查 API Key 的中间件
     app.Use(abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
@@ -870,7 +870,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 400 错误：用户提交的数据有问题
     app.MapGet("/bad-request", func(ctx abstract.ContextAbstract) error {
@@ -941,7 +941,7 @@ func (f *MyExceptionFilter) Catch(ctx abstract.ContextAbstract, err error) error
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 添加全局异常过滤器
     app.UseGlobalFilters(&MyExceptionFilter{})
@@ -1076,7 +1076,7 @@ func RoleGuard(requiredRole string) abstract.GuardAbstract {
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 全局 Guard：所有路由都要检查
     app.UseGlobalGuards(&AuthGuard{})
@@ -1147,7 +1147,7 @@ func LoggingInterceptor() abstract.InterceptorAbstract {
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 全局 Interceptor
     app.UseGlobalInterceptors(LoggingInterceptor())
@@ -1184,7 +1184,7 @@ func (p *ValidationPipe) Transform(value any, ctx abstract.ContextAbstract) (any
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 全局 Pipe
     app.UseGlobalPipes(&ValidationPipe{})
@@ -1274,7 +1274,7 @@ func (c *UserController) Delete(ctx abstract.ContextAbstract) error {
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 注册 Controller
     app.Controller(&UserController{})
@@ -1329,7 +1329,7 @@ func (c *PostController) Get(ctx abstract.ContextAbstract) error {
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 注册多个 Controller
     app.Controller(&UserController{})
@@ -1365,7 +1365,7 @@ func (c *APIController) Routes(r abstract.RouterAbstract) {
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
     app.Controller(&APIController{})
     app.Run()
 }
@@ -1449,7 +1449,7 @@ func main() {
     builder.Services().AddSingleton(NewMemoryDatabase())
 
     // 构建应用
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 使用服务 - 使用 Services() 方法
     app.MapGet("/users/:id", func(ctx abstract.ContextAbstract) error {
@@ -1497,7 +1497,7 @@ func main() {
         return &ConsoleLogger{}
     })
 
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     app.MapGet("/log", func(ctx abstract.ContextAbstract) error {
         // 每次调用都创建新的 Logger
@@ -1589,7 +1589,7 @@ func main() {
     // 创建应用 - 使用 UseConfig 方法（ASP.NET Core 风格）
     builder := core.CreateBuilder()
     builder.UseConfig(cfg)
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 读取配置
     app.MapGet("/config", func(ctx abstract.ContextAbstract) error {
@@ -1648,7 +1648,7 @@ func main() {
 
     builder := core.CreateBuilder()
     builder.UseConfig(cfg)
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     app.MapGet("/server-info", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, appCfg.Server)
@@ -1694,7 +1694,7 @@ func main() {
     // 也可以直接访问环境变量
     dbUrl := builder.Environment().Get("DATABASE_URL")
 
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     app.MapGet("/config", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, map[string]any{
@@ -1810,7 +1810,7 @@ func main() {
     // 创建应用并使用日志 - 使用 UseLogger 方法（ASP.NET Core 风格）
     builder := core.CreateBuilder()
     builder.UseLogger(log)
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 记录日志
     log.Info("应用启动")
@@ -1890,7 +1890,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 创建定时任务调度器
     scheduler := task.NewMemoryCronScheduler()
@@ -1942,7 +1942,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 创建任务队列（5个工作线程）
     queue := task.NewMemoryTaskQueue("tasks", 5, 1000)
@@ -2037,7 +2037,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 创建 JWT 提供者
     jwtProvider := auth.NewJWTProvider(&auth.JWTConfig{
@@ -2105,7 +2105,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 配置 Basic Auth
     app.Use(auth.NewBasicAuth(&auth.BasicAuthConfig{
@@ -2144,7 +2144,7 @@ import (
 
 func main() {
     builder := core.CreateBuilder()
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 配置 API Key
     app.Use(auth.NewAPIKey(&auth.APIKeyConfig{
@@ -2380,7 +2380,7 @@ func main() {
     builder.Services().AddSingleton(db)
 
     // 构建应用
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // 添加全局中间件（使用扩展方法）
     extensions.UseRecovery(app, nil)  // 恢复崩溃

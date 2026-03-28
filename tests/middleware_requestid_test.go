@@ -49,7 +49,7 @@ func TestRequestID_New_WithConfig(t *testing.T) {
 
 func TestRequestID_Middleware_GeneratesID(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(requestid.New(nil))
 
@@ -69,7 +69,7 @@ func TestRequestID_Middleware_GeneratesID(t *testing.T) {
 
 func TestRequestID_Middleware_UsesExistingID(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(requestid.New(nil))
 
@@ -90,7 +90,7 @@ func TestRequestID_Middleware_UsesExistingID(t *testing.T) {
 
 func TestRequestID_GetRequestID(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(requestid.New(nil))
 

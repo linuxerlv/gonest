@@ -44,7 +44,7 @@ func TestRecovery_New_WithConfig(t *testing.T) {
 
 func TestRecovery_Middleware_NoPanic(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(recovery.New(nil))
 
@@ -70,7 +70,7 @@ func TestRecovery_Middleware_NoPanic(t *testing.T) {
 
 func TestRecovery_Middleware_WithPanic(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(recovery.New(&recovery.Config{
 		PrintStack: true,

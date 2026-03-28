@@ -51,7 +51,7 @@ func TestTimeout_New_WithConfig(t *testing.T) {
 
 func TestTimeout_Middleware_NoTimeout(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(timeout.New(&timeout.Config{
 		Timeout: 5 * time.Second,
@@ -79,7 +79,7 @@ func TestTimeout_Middleware_NoTimeout(t *testing.T) {
 
 func TestTimeout_Middleware_WithTimeout(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(timeout.New(&timeout.Config{
 		Timeout:   100 * time.Millisecond,

@@ -52,7 +52,7 @@ func TestCORS_New_WithConfig(t *testing.T) {
 
 func TestCORS_Middleware_NoOrigin(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(cors.New(&cors.Config{
 		AllowOrigins: []string{"http://example.com"},
@@ -76,7 +76,7 @@ func TestCORS_Middleware_NoOrigin(t *testing.T) {
 
 func TestCORS_Middleware_AllowedOrigin(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(cors.New(&cors.Config{
 		AllowOrigins: []string{"http://example.com"},
@@ -99,7 +99,7 @@ func TestCORS_Middleware_AllowedOrigin(t *testing.T) {
 
 func TestCORS_Middleware_WildcardOrigin(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(cors.New(&cors.Config{
 		AllowOrigins: []string{"*"},
@@ -122,7 +122,7 @@ func TestCORS_Middleware_WildcardOrigin(t *testing.T) {
 
 func TestCORS_Middleware_OptionsRequest(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(cors.New(&cors.Config{
 		AllowOrigins:     []string{"http://example.com"},

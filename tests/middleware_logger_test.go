@@ -45,7 +45,7 @@ func TestLogger_New_WithConfig(t *testing.T) {
 
 func TestLogger_Middleware_LogsRequest(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(logger.New(nil))
 
@@ -67,7 +67,7 @@ func TestLogger_Middleware_LogsRequest(t *testing.T) {
 
 func TestLogger_Middleware_SkipPath(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	app := builder.BuildWeb()
+	app := builder.Build()
 
 	app.Use(logger.New(&logger.Config{
 		SkipPaths: []string{"/health"},

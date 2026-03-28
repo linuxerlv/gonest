@@ -213,12 +213,8 @@ func (b *WireWebApplicationBuilder) Services() abstract.ServiceCollection {
 	return b.WebApplicationBuilder.Services()
 }
 
-func (b *WireWebApplicationBuilder) Build() abstract.Application {
+func (b *WireWebApplicationBuilder) Build() abstract.WebApplication {
 	return b.WebApplicationBuilder.Build()
-}
-
-func (b *WireWebApplicationBuilder) BuildWeb() abstract.WebApplication {
-	return b.WebApplicationBuilder.BuildWeb()
 }
 
 func ProvideApplicationBuilder() *ApplicationBuilder {
@@ -234,7 +230,7 @@ func ProvideApplication(builder *ApplicationBuilder) abstract.Application {
 }
 
 func ProvideWebApplication(builder *WebApplicationBuilder) abstract.WebApplication {
-	return builder.BuildWeb()
+	return builder.Build()
 }
 
 type WireApp struct {

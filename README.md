@@ -48,7 +48,7 @@ func main() {
     builder.Services().AddSingleton(&MyService{})
 
     // Build application
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // Use middleware (extension methods)
     extensions.UseRecovery(app, nil)
@@ -91,7 +91,7 @@ func main() {
     })
 
     // Build application
-    app := builder.BuildWeb()
+    app := builder.Build()
 
     // Get service from DI container
     service := core.GetService[*MyService](app.Services())
@@ -264,7 +264,7 @@ import "github.com/linuxerlv/gonest/core"
 
 // Web Application (with HTTP server)
 builder := core.CreateBuilder()           // Create WebApplication builder
-app := builder.BuildWeb()                 // Build WebApplication
+app := builder.Build()                 // Build WebApplication
 app.Run()                                 // Start server
 
 // Generic Application (non-web scenarios)
