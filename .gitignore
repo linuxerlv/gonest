@@ -50,8 +50,6 @@ tmp/
 # Example project
 example/
 
-# Tests directory
-tests/
 
-# Frontend packages (TypeScript/monorepo)
-packages/
+
+guides/
