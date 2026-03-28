@@ -50,9 +50,13 @@ func main() {
     // Build application
     app := builder.Build()
 
-    // Use middleware (extension methods)
-    extensions.UseRecovery(app, nil)
-    extensions.UseCORS(app, nil)
+    // Use middleware (extension methods - chained calls)
+    app = extensions.Extend(app).
+        UseRecovery(nil).
+        UseCORS(&extensions.CORSMiddlewareOptions{
+            AllowOrigins: []string{"https://example.com"},
+        }).
+        UseLogging(nil)
 
     // Register routes
     app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
@@ -96,11 +100,12 @@ func main() {
     // Get service from DI container
     service := core.GetService[*MyService](app.Services())
 
-    // Use middleware
-    extensions.UseRecovery(app, nil)
-    extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
-        AllowOrigins: []string{"https://example.com"},
-    })
+    // Use middleware (extension methods - chained calls)
+    app = extensions.Extend(app).
+        UseRecovery(nil).
+        UseCORS(&extensions.CORSMiddlewareOptions{
+            AllowOrigins: []string{"https://example.com"},
+        })
 
     // Register routes
     app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
@@ -312,23 +317,24 @@ api.MapGet("/users", listUsers)
 ```go
 import "github.com/linuxerlv/gonest/extensions"
 
-// UseXXX extension methods
-extensions.UseRecovery(app, nil)
-extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
-    AllowOrigins: []string{"https://example.com"},
-})
-extensions.UseRateLimit(app, &extensions.RateLimitMiddlewareOptions{
-    Limit:  100,
-    Window: 60, // seconds
-})
-extensions.UseGzip(app, nil)
-extensions.UseSecurityHeaders(app, nil)
-extensions.UseRequestID(app, nil)
-extensions.UseTimeout(app, &extensions.TimeoutMiddlewareOptions{
-    Timeout: 30, // seconds
-})
+// Method 1: Chained calls (recommended)
+app = extensions.Extend(app).
+    UseRecovery(nil).
+    UseCORS(&extensions.CORSMiddlewareOptions{
+        AllowOrigins: []string{"https://example.com"},
+    }).
+    UseRateLimit(&extensions.RateLimitMiddlewareOptions{
+        Limit:  100,
+        Window: 60, // seconds
+    }).
+    UseGzip(nil).
+    UseSecurity(nil).
+    UseRequestID(nil).
+    UseTimeout(&extensions.TimeoutMiddlewareOptions{
+        Timeout: 30, // seconds
+    })
 
-// Or use raw middleware
+// Method 2: Use raw middleware
 app.Use(middleware)
 ```
 

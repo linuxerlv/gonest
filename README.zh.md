@@ -50,9 +50,13 @@ func main() {
     // 构建应用
     app := builder.Build()
 
-    // 使用中间件（扩展方法）
-    extensions.UseRecovery(app, nil)
-    extensions.UseCORS(app, nil)
+    // 使用中间件（扩展方法 - 链式调用）
+    app = extensions.Extend(app).
+        UseRecovery(nil).
+        UseCORS(&extensions.CORSMiddlewareOptions{
+            AllowOrigins: []string{"https://example.com"},
+        }).
+        UseLogging(nil)
 
     // 注册路由
     app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
@@ -96,11 +100,12 @@ func main() {
     // 从 DI 容器获取服务
     service := core.GetService[*MyService](app.Services())
 
-    // 使用中间件
-    extensions.UseRecovery(app, nil)
-    extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
-        AllowOrigins: []string{"https://example.com"},
-    })
+    // 使用中间件（扩展方法 - 链式调用）
+    app = extensions.Extend(app).
+        UseRecovery(nil).
+        UseCORS(&extensions.CORSMiddlewareOptions{
+            AllowOrigins: []string{"https://example.com"},
+        })
 
     // 注册路由
     app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
@@ -312,23 +317,24 @@ api.MapGet("/users", listUsers)
 ```go
 import "github.com/linuxerlv/gonest/extensions"
 
-// UseXXX 扩展方法
-extensions.UseRecovery(app, nil)
-extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
-    AllowOrigins: []string{"https://example.com"},
-})
-extensions.UseRateLimit(app, &extensions.RateLimitMiddlewareOptions{
-    Limit:  100,
-    Window: 60, // 秒
-})
-extensions.UseGzip(app, nil)
-extensions.UseSecurityHeaders(app, nil)
-extensions.UseRequestID(app, nil)
-extensions.UseTimeout(app, &extensions.TimeoutMiddlewareOptions{
-    Timeout: 30, // 秒
-})
+// 方式一：链式调用（推荐）
+app = extensions.Extend(app).
+    UseRecovery(nil).
+    UseCORS(&extensions.CORSMiddlewareOptions{
+        AllowOrigins: []string{"https://example.com"},
+    }).
+    UseRateLimit(&extensions.RateLimitMiddlewareOptions{
+        Limit:  100,
+        Window: 60, // 秒
+    }).
+    UseGzip(nil).
+    UseSecurity(nil).
+    UseRequestID(nil).
+    UseTimeout(&extensions.TimeoutMiddlewareOptions{
+        Timeout: 30, // 秒
+    })
 
-// 或者使用原始中间件
+// 方式二：使用原始中间件
 app.Use(middleware)
 ```
 

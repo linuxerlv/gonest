@@ -50,9 +50,13 @@ func main() {
     // アプリケーションをビルド
     app := builder.Build()
 
-    // ミドルウェアを使用（拡張メソッド）
-    extensions.UseRecovery(app, nil)
-    extensions.UseCORS(app, nil)
+    // ミドルウェアを使用（拡張メソッド - チェーン呼び出し）
+    app = extensions.Extend(app).
+        UseRecovery(nil).
+        UseCORS(&extensions.CORSMiddlewareOptions{
+            AllowOrigins: []string{"https://example.com"},
+        }).
+        UseLogging(nil)
 
     // ルートを登録
     app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
@@ -96,11 +100,12 @@ func main() {
     // DIコンテナからサービスを取得
     service := core.GetService[*MyService](app.Services())
 
-    // ミドルウェアを使用
-    extensions.UseRecovery(app, nil)
-    extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
-        AllowOrigins: []string{"https://example.com"},
-    })
+    // ミドルウェアを使用（拡張メソッド - チェーン呼び出し）
+    app = extensions.Extend(app).
+        UseRecovery(nil).
+        UseCORS(&extensions.CORSMiddlewareOptions{
+            AllowOrigins: []string{"https://example.com"},
+        })
 
     // ルートを登録
     app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
@@ -312,23 +317,24 @@ api.MapGet("/users", listUsers)
 ```go
 import "github.com/linuxerlv/gonest/extensions"
 
-// UseXXX拡張メソッド
-extensions.UseRecovery(app, nil)
-extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
-    AllowOrigins: []string{"https://example.com"},
-})
-extensions.UseRateLimit(app, &extensions.RateLimitMiddlewareOptions{
-    Limit:  100,
-    Window: 60, // 秒
-})
-extensions.UseGzip(app, nil)
-extensions.UseSecurityHeaders(app, nil)
-extensions.UseRequestID(app, nil)
-extensions.UseTimeout(app, &extensions.TimeoutMiddlewareOptions{
-    Timeout: 30, // 秒
-})
+// 方法1：チェーン呼び出し（推奨）
+app = extensions.Extend(app).
+    UseRecovery(nil).
+    UseCORS(&extensions.CORSMiddlewareOptions{
+        AllowOrigins: []string{"https://example.com"},
+    }).
+    UseRateLimit(&extensions.RateLimitMiddlewareOptions{
+        Limit:  100,
+        Window: 60, // 秒
+    }).
+    UseGzip(nil).
+    UseSecurity(nil).
+    UseRequestID(nil).
+    UseTimeout(&extensions.TimeoutMiddlewareOptions{
+        Timeout: 30, // 秒
+    })
 
-// または生のミドルウェアを使用
+// 方法2：生のミドルウェアを使用
 app.Use(middleware)
 ```
 
