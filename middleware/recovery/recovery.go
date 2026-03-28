@@ -17,17 +17,16 @@ func DefaultConfig() *Config {
 	}
 }
 
-func New(cfg *Config) abstract.MiddlewareAbstract {
+func New(cfg *Config) abstract.Middleware {
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
 
-	return abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) (err error) {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Printf("[PANIC] %v recovered at %s", r, ctx.Path())
 				if cfg.PrintStack {
-					// stack printing logic can be added here
 				}
 				err = abstract.InternalError(fmt.Sprintf("internal server error: %v", r))
 			}

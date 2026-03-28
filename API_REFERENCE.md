@@ -170,34 +170,77 @@ type EnvAbstract interface {
 }
 ```
 
-### 应用接口
+### 应用接口（ASP.NET Core 风格）
 
 ```go
-type ApplicationAbstract interface {
-    RouterAbstract
-    Use(middleware MiddlewareAbstract) ApplicationAbstract
-    UseGlobalGuards(guards ...GuardAbstract) ApplicationAbstract
-    UseGlobalInterceptors(interceptors ...InterceptorAbstract) ApplicationAbstract
-    UseGlobalPipes(pipes ...PipeAbstract) ApplicationAbstract
-    UseGlobalFilters(filters ...ExceptionFilterAbstract) ApplicationAbstract
-    Controller(controller ControllerAbstract) ApplicationAbstract
-    Listen(addr string) error
-    Shutdown(ctx context.Context) error
-}
-
-type WebApplicationAbstract interface {
-    ApplicationAbstract
+// IApplication 通用应用接口
+type IApplication interface {
+    Services() ServiceCollectionAbstract
     Configuration() ConfigAbstract
-    Log() LoggerAbstract
+    Environment() EnvAbstract
+    Logging() LoggerAbstract
     Run() error
     RunAsync() <-chan error
+    Start() error
+    StartAsync() <-chan error
+    Stop() error
+    Shutdown(ctx context.Context) error
+    WaitForShutdown() error
 }
 
-type WebApplicationBuilderAbstract interface {
-    UseConfig(cfg ConfigAbstract) WebApplicationBuilderAbstract
-    UseLogger(log LoggerAbstract) WebApplicationBuilderAbstract
-    ConfigureServices(configure func(ServiceCollectionAbstract)) WebApplicationBuilderAbstract
-    Build() WebApplicationAbstract
+// IApplicationBuilder 通用应用构建器接口
+type IApplicationBuilder interface {
+    Services() ServiceCollectionAbstract
+    Configuration() ConfigAbstract
+    Environment() EnvAbstract
+    Logging() LoggerAbstract
+    Build() IApplication
+}
+
+// IWebApplication Web应用接口
+type IWebApplication interface {
+    IApplication
+    RouterAbstract
+    Use(middleware MiddlewareAbstract) IWebApplication
+    UseGlobalGuards(guards ...GuardAbstract) IWebApplication
+    UseGlobalInterceptors(interceptors ...InterceptorAbstract) IWebApplication
+    UseGlobalPipes(pipes ...PipeAbstract) IWebApplication
+    UseGlobalFilters(filters ...ExceptionFilterAbstract) IWebApplication
+    MapGet(path string, handler any) RouteBuilderAbstract
+    MapPost(path string, handler any) RouteBuilderAbstract
+    MapPut(path string, handler any) RouteBuilderAbstract
+    MapDelete(path string, handler any) RouteBuilderAbstract
+    MapPatch(path string, handler any) RouteBuilderAbstract
+    Map(method string, path string, handler any) RouteBuilderAbstract
+    MapGroup(prefix string) RouteGroupAbstract
+    UseRouting() IWebApplication
+    UseEndpoints(configure func(IEndpointRouteBuilder)) IWebApplication
+    UseAuthentication() IWebApplication
+    UseAuthorization() IWebApplication
+    Urls() []string
+    Addresses() []string
+    ServeHTTP(w http.ResponseWriter, r *http.Request)
+    Listen(addr string) error
+}
+
+// IWebApplicationBuilder Web应用构建器接口
+type IWebApplicationBuilder interface {
+    IApplicationBuilder
+    WebHost() IWebHostBuilder
+    BuildWeb() IWebApplication
+}
+
+// IEndpointRouteBuilder 端点路由构建器接口
+type IEndpointRouteBuilder interface {
+    MapGet(path string, handler any) RouteBuilderAbstract
+    MapPost(path string, handler any) RouteBuilderAbstract
+    MapPut(path string, handler any) RouteBuilderAbstract
+    MapDelete(path string, handler any) RouteBuilderAbstract
+    MapPatch(path string, handler any) RouteBuilderAbstract
+    MapControllers() IEndpointRouteBuilder
+    MapControllerRoute(name string, pattern string, defaults map[string]string) IEndpointRouteBuilder
+    MapAreaControllerRoute(name string, areaName string, pattern string, defaults map[string]string) IEndpointRouteBuilder
+    MapDefaultControllerRoute() IEndpointRouteBuilder
 }
 ```
 
@@ -205,52 +248,79 @@ type WebApplicationBuilderAbstract interface {
 
 ## 核心实现（core）
 
-### 结构体定义
+### 结构体定义（ASP.NET Core 风格）
 
 ```go
-// Application - 基础应用
+// Application - 基础应用（HTTP 路由支持）
 type Application struct {
-    Config   config.Config          // 公开属性 - 框架配置
-    Env      abstract.EnvAbstract   // 公开属性 - 环境变量
-    Services *ServiceCollection     // 公开属性 - DI 容器
-    // ... 其他私有字段
+    // 通过方法访问配置
+    // Services() ServiceCollectionAbstract
+    // Configuration() ConfigAbstract
+    // Environment() EnvAbstract
+    // Logging() LoggerAbstract
+}
+
+// HostApplication - 通用主机应用（非 Web 场景）
+type HostApplication struct {
+    // 用于后台服务、定时任务等非 Web 场景
+    // Services() ServiceCollectionAbstract
+    // Configuration() ConfigAbstract
+    // Environment() EnvAbstract
+    // Logging() LoggerAbstract
+    // Start() / Stop() / Run()
+}
+
+// ApplicationBuilder - 通用应用构建器
+type ApplicationBuilder struct {
+    // 通过方法访问服务
+    // Services() ServiceCollectionAbstract
+    // Configuration() ConfigAbstract
+    // Environment() EnvAbstract
+    // Logging() LoggerAbstract
+    // Build() IApplication (返回 HostApplication)
 }
 
 // WebApplication - Web 应用
 type WebApplication struct {
     *Application
-    Config   config.Config          // 公开属性 - 框架配置
-    Env      abstract.EnvAbstract   // 公开属性 - 环境变量
-    Services *ServiceCollection     // 公开属性 - DI 容器
-    Logger   logger.Logger          // 公开属性 - 日志
-    // ... 其他私有字段
+    // 继承 Application 的方法
+    // 额外提供 Web 相关功能
+    // MapGet/MapPost/MapPut/MapDelete/MapPatch
+    // UseRouting/UseEndpoints/UseAuthentication/UseAuthorization
+    // Urls() / Addresses()
 }
 
-// WebApplicationBuilder - 应用构建器
+// WebApplicationBuilder - Web 应用构建器
 type WebApplicationBuilder struct {
-    Services *ServiceCollection     // 公开属性 - DI 容器（Wire 注入友好）
-    Config   config.Config          // 公开属性 - 框架配置
-    Env      abstract.EnvAbstract   // 公开属性 - 环境变量
-    Logger   logger.Logger          // 公开属性 - 日志
-    Host     *HostBuilder           // 公开属性 - 主机构建器
-    // ... 其他私有字段
+    *ApplicationBuilder
+    Host *HostBuilder
+    // 额外提供 WebHost() 方法
+    // BuildWeb() IWebApplication
+}
+
+// EndpointRouteBuilder - 端点路由构建器
+type EndpointRouteBuilder struct {
+    // 实现 IEndpointRouteBuilder 接口
+    // MapControllers() / MapControllerRoute() / MapDefaultControllerRoute()
 }
 ```
 
-### 应用创建
+### 应用创建（ASP.NET Core 风格）
 
 ```go
 import "github.com/linuxerlv/gonest/core"
 
-// 快速创建（适合简单应用）
-func CreateApplication(args ...string) *WebApplication
-
-// Builder 模式（推荐）
+// Web Application Builder（推荐用于 Web 应用）
 func CreateBuilder(args ...string) *WebApplicationBuilder
 func NewWebApplicationBuilder() *WebApplicationBuilder
 
+// Generic Application Builder（用于非 Web 场景，返回 HostApplication）
+func CreateApplicationBuilder(args ...string) *ApplicationBuilder
+func NewApplicationBuilder() *ApplicationBuilder
+
 // 创建基础组件
 func NewApplication() *Application
+func NewHostApplication() *HostApplication  // 通用主机应用（非 Web）
 func NewRouter() *HttpRouter
 func NewContext(w http.ResponseWriter, r *http.Request) *HttpContext
 func NewContextWithParams(w http.ResponseWriter, r *http.Request, params map[string]string) *HttpContext
@@ -258,23 +328,84 @@ func NewServiceCollection() *ServiceCollection
 func NewEnv() *Env
 ```
 
-### 使用示例
+### 使用示例（ASP.NET Core 风格）
 
 ```go
-// Builder 模式
+// Web 应用 Builder 模式
 builder := core.CreateBuilder()
-builder.Config = config.NewKoanfConfig(".")
-builder.Env.Set("APP_ENV", "production")
-builder.Services.AddSingleton(&MyService{})
-app := builder.Build().(*core.WebApplication)
 
-// 访问公开属性
-cfg := app.Config
-env := app.Env
-services := app.Services
+// 配置服务
+builder.UseConfig(config.NewKoanfConfig("."))
+builder.Environment().Set("APP_ENV", "production")
+builder.UseLogger(logger)
+
+// 注册服务到 DI 容器
+builder.Services().AddSingleton(&MyService{})
+builder.Services().AddScoped(func(s abstract.ServiceCollectionAbstract) *DbContext {
+    return &DbContext{}
+})
+
+// 构建 Web 应用
+app := builder.BuildWeb()
+
+// 使用中间件（扩展方法）
+extensions.UseRecovery(app, nil)
+extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
+    AllowOrigins: []string{"https://example.com"},
+})
+
+// 注册路由
+app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
+    return ctx.JSON(200, map[string]string{"message": "Hello"})
+})
+
+// 使用端点路由配置
+app.UseEndpoints(func(endpoints abstract.IEndpointRouteBuilder) {
+    endpoints.MapGet("/api/users", getUsers)
+    endpoints.MapPost("/api/users", createUser)
+    // endpoints.MapControllers()  // 映射所有控制器
+    // endpoints.MapDefaultControllerRoute()  // 默认路由 {controller=Home}/{action=Index}/{id?}
+})
+
+// 获取 URL 列表
+urls := app.Urls()        // ["http://localhost:8080"]
+addresses := app.Addresses()  // 同 Urls()
 
 // 从 DI 获取服务
-service := core.GetService[*MyService](services)
+service := core.GetService[*MyService](app.Services())
+
+// 运行应用（阻塞）
+app.Run()
+
+// 或使用 Start/Stop 控制生命周期
+// app.Start()
+// defer app.Stop()
+// app.WaitForShutdown()
+```
+
+### 通用应用（非 Web 场景）
+
+```go
+// 创建通用应用构建器（返回 HostApplication）
+builder := core.CreateApplicationBuilder()
+
+// 注册服务
+builder.Services().AddSingleton(&MyService{})
+builder.Services().AddTransient(func(s abstract.ServiceCollectionAbstract) *Worker {
+    return &Worker{}
+})
+
+// 构建应用
+app := builder.Build()  // 返回 HostApplication
+
+// 获取服务并执行业务逻辑
+service := core.GetService[*MyService](app.Services())
+service.DoWork()
+
+// 控制生命周期
+app.Start()
+defer app.Stop()
+app.WaitForShutdown()
 ```
 
 ### HttpContext
@@ -311,39 +442,57 @@ func (c *HttpContext) Context() context.Context
 ### 依赖注入泛型方法
 
 ```go
-// 注册服务
+// 注册服务（通过 builder.Services() 或 app.Services() 调用）
+builder.Services().AddSingleton(instance)
+builder.Services().AddSingletonFunc(func(s abstract.ServiceCollectionAbstract) *MyService {
+    return &MyService{}
+})
+builder.Services().AddScoped(func(s abstract.ServiceCollectionAbstract) *DbContext {
+    return &DbContext{}
+})
+builder.Services().AddTransient(func(s abstract.ServiceCollectionAbstract) *CacheService {
+    return &CacheService{}
+})
+
+// 泛型辅助方法（通过 core 包调用）
 func AddSingleton[T any](s *ServiceCollection, instance T) *ServiceCollection
 func AddSingletonFunc[T any](s *ServiceCollection, factory func(abstract.ServiceCollectionAbstract) T) *ServiceCollection
 func AddScoped[T any](s *ServiceCollection, factory func(abstract.ServiceCollectionAbstract) T) *ServiceCollection
 func AddTransient[T any](s *ServiceCollection, factory func(abstract.ServiceCollectionAbstract) T) *ServiceCollection
 
-// 获取服务
+// 获取服务（通过 core 包调用）
 func GetService[T any](s abstract.ServiceCollectionAbstract) T
 func GetRequiredService[T any](s abstract.ServiceCollectionAbstract) T
 ```
 
-### 环境变量
+### 环境变量（通过 Builder 访问）
 
 ```go
 import "github.com/linuxerlv/gonest/core"
 
-env := core.NewEnv()
+// 通过 Builder 访问环境变量
+builder := core.CreateBuilder()
 
 // 读取环境变量
-dbUrl := env.Get("DATABASE_URL")
-port := env.GetOrDefault("PORT", "8080")
+dbUrl := builder.Environment().Get("DATABASE_URL")
+port := builder.Environment().GetOrDefault("PORT", "8080")
 
 // 检查存在
-if env.Has("DEBUG") {
+if builder.Environment().Has("DEBUG") {
     // ...
 }
 
 // 获取所有
-allEnv := env.All()
+allEnv := builder.Environment().All()
 
 // 设置（用于测试）
+builder.Environment().Set("KEY", "value")
+builder.Environment().Unset("KEY")
+
+// 也可以创建独立的环境变量实例
+env := core.NewEnv()
 env.Set("KEY", "value")
-env.Unset("KEY")
+value := env.Get("KEY")
 ```
 
 ### HTTP 错误
@@ -363,37 +512,63 @@ func NewHttpException(code int, message string) error
 
 ## 中间件扩展包
 
-### 使用方式
+### 使用方式（扩展方法 - 推荐）
 
 ```go
 import (
     "github.com/linuxerlv/gonest/core"
-    "github.com/linuxerlv/gonest/middleware/cors"
-    "github.com/linuxerlv/gonest/middleware/recovery"
-    "github.com/linuxerlv/gonest/middleware/ratelimit"
+    "github.com/linuxerlv/gonest/extensions"
 )
 
-app := core.CreateApplication()
+builder := core.CreateBuilder()
+app := builder.BuildWeb()
+
+// 使用扩展方法添加中间件
+extensions.UseRecovery(app, nil)
+extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
+    AllowOrigins: []string{"https://example.com"},
+})
+extensions.UseRateLimit(app, &extensions.RateLimitMiddlewareOptions{
+    Limit:  100,
+    Window: 60,
+})
+extensions.UseGzip(app, nil)
+extensions.UseSecurityHeaders(app, nil)
+extensions.UseRequestID(app, nil)
+extensions.UseTimeout(app, &extensions.TimeoutMiddlewareOptions{
+    Timeout: 30,
+})
+extensions.UseLogging(app, nil)
+```
+
+### 使用方式（原始中间件）
+
+```go
+import (
+    "github.com/linuxerlv/gonest/middleware/cors"
+    "github.com/linuxerlv/gonest/middleware/recovery"
+)
+
 app.Use(recovery.New(nil))
-app.Use(cors.New(nil))
+app.Use(cors.New(&cors.Config{...}))
 ```
 
 ### 可用中间件
 
-| 包 | 说明 | 配置结构 |
-|---|------|---------|
-| `middleware/cors` | CORS 跨域 | `cors.Config` |
-| `middleware/recovery` | Panic 恢复 | `recovery.Config` |
-| `middleware/ratelimit` | 限流 | `ratelimit.Config` |
-| `middleware/timeout` | 超时控制 | `timeout.Config` |
-| `middleware/gzip` | Gzip 压缩 | `gzip.Config` |
-| `middleware/security` | 安全头 | `security.Config` |
-| `middleware/requestid` | 请求 ID | `requestid.Config` |
-| `middleware/logger` | 日志中间件 | `logger.Config` |
-| `middleware/auth` | JWT 认证 | `auth.Config` |
-| `middleware/session` | Session 管理 | `session.Config` |
-| `middleware/casbin` | Casbin 权限 | `casbin.Config` |
-| `middleware/oauth` | OAuth 认证 | `oauth.Config` |
+| 包 | 说明 | 扩展方法 | 配置选项 |
+|---|------|---------|---------|
+| `middleware/cors` | CORS 跨域 | `extensions.UseCORS()` | `CORSMiddlewareOptions` |
+| `middleware/recovery` | Panic 恢复 | `extensions.UseRecovery()` | `RecoveryMiddlewareOptions` |
+| `middleware/ratelimit` | 限流 | `extensions.UseRateLimit()` | `RateLimitMiddlewareOptions` |
+| `middleware/timeout` | 超时控制 | `extensions.UseTimeout()` | `TimeoutMiddlewareOptions` |
+| `middleware/gzip` | Gzip 压缩 | `extensions.UseGzip()` | `GzipMiddlewareOptions` |
+| `middleware/security` | 安全头 | `extensions.UseSecurityHeaders()` | `SecurityMiddlewareOptions` |
+| `middleware/requestid` | 请求 ID | `extensions.UseRequestID()` | `RequestIDMiddlewareOptions` |
+| `middleware/logger` | 日志中间件 | `extensions.UseLogging()` | `LoggingMiddlewareOptions` |
+| `middleware/auth` | JWT 认证 | - | `auth.Config` |
+| `middleware/session` | Session 管理 | - | `session.Config` |
+| `middleware/casbin` | Casbin 权限 | - | `casbin.Config` |
+| `middleware/oauth` | OAuth 认证 | - | `oauth.Config` |
 
 ### CORS 示例
 

@@ -1,6 +1,6 @@
 package abstract
 
-// ExceptionFilterAbstract 异常过滤器接口
-type ExceptionFilterAbstract interface {
-	Catch(ctx ContextAbstract, err error) error
+// ExceptionFilter 异常过滤器接口
+type ExceptionFilter interface {
+	Catch(ctx Context, err error) error
 }

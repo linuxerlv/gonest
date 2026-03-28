@@ -1,7 +1,7 @@
 package abstract
 
-// ConfigAbstract 配置接口
-type ConfigAbstract interface {
+// Config 配置接口
+type Config interface {
 	GetString(key string) string
 	GetInt(key string) int
 	GetBool(key string) bool
@@ -10,32 +10,32 @@ type ConfigAbstract interface {
 	Unmarshal(key string, v any) error
 }
 
-// TypedConfigAbstract 泛型配置接口
-type TypedConfigAbstract interface {
+// TypedConfig 泛型配置接口
+type TypedConfig interface {
 	GetString(key string) string
 	GetInt(key string) int
 	GetBool(key string) bool
 }
 
-// ConfigLoaderAbstract 配置加载接口
-type ConfigLoaderAbstract interface {
+// ConfigLoader 配置加载接口
+type ConfigLoader interface {
 	Load() error
 	LoadFile(path string) error
 }
 
-// ConfigWatcherAbstract 配置监听接口
-type ConfigWatcherAbstract interface {
+// ConfigWatcher 配置监听接口
+type ConfigWatcher interface {
 	Watch(callback func(key string, value any))
 	StopWatch()
 }
 
-// ConfigProviderAbstract 配置提供者接口
-type ConfigProviderAbstract interface {
+// ConfigProvider 配置提供者接口
+type ConfigProvider interface {
 	Name() string
 	Provide() (map[string]any, error)
 }
 
-// ConfigurableAbstract 可配置接口
-type ConfigurableAbstract interface {
-	Configure(cfg ConfigAbstract) error
+// Configurable 可配置接口
+type Configurable interface {
+	Configure(cfg Config) error
 }

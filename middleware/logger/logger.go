@@ -12,7 +12,7 @@ import (
 
 type Config struct {
 	SkipPaths  []string
-	Formatter  func(ctx abstract.ContextAbstract, latency time.Duration) string
+	Formatter  func(ctx abstract.Context, latency time.Duration) string
 	Output     io.Writer
 	TimeFormat string
 }
@@ -24,12 +24,12 @@ func DefaultConfig() *Config {
 	}
 }
 
-func New(cfg *Config) abstract.MiddlewareAbstract {
+func New(cfg *Config) abstract.Middleware {
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
 
-	return abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
 		start := time.Now()
 		err := next()
 		latency := time.Since(start)
@@ -62,12 +62,12 @@ type ContextLogger interface {
 	Error(msg string, fields ...any)
 }
 
-func NewWithLogger(log ContextLogger, cfg *Config) abstract.MiddlewareAbstract {
+func NewWithLogger(log ContextLogger, cfg *Config) abstract.Middleware {
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
 
-	return abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
 		start := time.Now()
 		err := next()
 		latency := time.Since(start)

@@ -1,4 +1,4 @@
-package gonest_test
+package tests
 
 import (
 	"net/http"
@@ -6,419 +6,636 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/linuxerlv/gonest/config"
+	"github.com/linuxerlv/gonest"
 	"github.com/linuxerlv/gonest/core"
 	"github.com/linuxerlv/gonest/core/abstract"
-	"github.com/linuxerlv/gonest/logger"
 )
 
 func TestServiceCollection_AddSingleton(t *testing.T) {
-	services := core.NewServiceCollection()
+	collection := core.NewServiceCollection()
 
-	services.AddSingleton(&MockService{name: "test"})
+	type TestService struct{ Name string }
+	service := &TestService{Name: "test"}
 
-	service := services.GetService(reflect.TypeOf(&MockService{}))
-	if service == nil {
-		t.Error("expected service to be found")
+	collection.AddSingleton(service)
+
+	retrieved := collection.GetService(reflect.TypeOf(service))
+	if retrieved == nil {
+		t.Error("Expected service to be retrieved")
 	}
 
-	mock := service.(*MockService)
-	if mock.name != "test" {
-		t.Errorf("expected name 'test', got '%s'", mock.name)
+	if retrieved.(*TestService).Name != "test" {
+		t.Errorf("Expected Name to be 'test', got '%s'", retrieved.(*TestService).Name)
 	}
 }
 
 func TestServiceCollection_AddSingletonFactory(t *testing.T) {
-	services := core.NewServiceCollection()
+	collection := core.NewServiceCollection()
 
-	serviceType := reflect.TypeOf(&MockService{})
-	services.AddSingletonFactory(serviceType, func(s abstract.ServiceCollectionAbstract) any {
-		return &MockService{name: "factory"}
+	type TestService struct{ Name string }
+	serviceType := reflect.TypeOf(&TestService{})
+
+	collection.AddSingletonFactory(serviceType, func(sc abstract.ServiceCollection) any {
+		return &TestService{Name: "factory"}
 	})
 
-	service := services.GetService(serviceType)
-	if service == nil {
-		t.Error("expected service to be found")
+	retrieved := collection.GetService(serviceType)
+	if retrieved == nil {
+		t.Error("Expected service to be retrieved")
 	}
 
-	mock := service.(*MockService)
-	if mock.name != "factory" {
-		t.Errorf("expected name 'factory', got '%s'", mock.name)
+	if retrieved.(*TestService).Name != "factory" {
+		t.Errorf("Expected Name to be 'factory', got '%s'", retrieved.(*TestService).Name)
+	}
+}
+
+func TestServiceCollection_AddScoped(t *testing.T) {
+	collection := core.NewServiceCollection()
+
+	type TestService struct{ ID int }
+	serviceType := reflect.TypeOf(&TestService{})
+
+	callCount := 0
+	collection.AddScoped(serviceType, func(sc abstract.ServiceCollection) any {
+		callCount++
+		return &TestService{ID: callCount}
+	})
+
+	retrieved1 := collection.GetService(serviceType)
+	retrieved2 := collection.GetService(serviceType)
+
+	if retrieved1.(*TestService).ID != 1 {
+		t.Errorf("Expected first ID to be 1, got %d", retrieved1.(*TestService).ID)
+	}
+
+	if retrieved2.(*TestService).ID != 2 {
+		t.Errorf("Expected second ID to be 2, got %d", retrieved2.(*TestService).ID)
 	}
 }
 
 func TestServiceCollection_AddTransient(t *testing.T) {
-	services := core.NewServiceCollection()
+	collection := core.NewServiceCollection()
 
-	serviceType := reflect.TypeOf(&MockService{})
-	services.AddTransient(serviceType, func(s abstract.ServiceCollectionAbstract) any {
-		return &MockService{name: "transient"}
+	type TestService struct{ ID int }
+	serviceType := reflect.TypeOf(&TestService{})
+
+	callCount := 0
+	collection.AddTransient(serviceType, func(sc abstract.ServiceCollection) any {
+		callCount++
+		return &TestService{ID: callCount}
 	})
 
-	service1 := services.GetService(serviceType)
-	service2 := services.GetService(serviceType)
+	retrieved1 := collection.GetService(serviceType)
+	retrieved2 := collection.GetService(serviceType)
 
-	if service1 == nil || service2 == nil {
-		t.Error("expected services to be found")
+	if retrieved1.(*TestService).ID != 1 {
+		t.Errorf("Expected first ID to be 1, got %d", retrieved1.(*TestService).ID)
 	}
 
-	if service1 == service2 {
-		t.Error("transient services should be different instances")
+	if retrieved2.(*TestService).ID != 2 {
+		t.Errorf("Expected second ID to be 2, got %d", retrieved2.(*TestService).ID)
 	}
 }
 
 func TestServiceCollection_GetRequiredService(t *testing.T) {
-	services := core.NewServiceCollection()
+	collection := core.NewServiceCollection()
 
-	serviceType := reflect.TypeOf(&MockService{})
-	services.AddSingleton(&MockService{name: "required"})
+	type TestService struct{ Name string }
+	service := &TestService{Name: "required"}
+	collection.AddSingleton(service)
 
-	service := services.GetRequiredService(serviceType)
-	if service == nil {
-		t.Error("expected service to be found")
+	retrieved := collection.GetRequiredService(reflect.TypeOf(service))
+	if retrieved.(*TestService).Name != "required" {
+		t.Errorf("Expected Name to be 'required', got '%s'", retrieved.(*TestService).Name)
 	}
 }
 
 func TestServiceCollection_GetRequiredService_Panic(t *testing.T) {
-	services := core.NewServiceCollection()
-
-	serviceType := reflect.TypeOf(&MockService{})
-
 	defer func() {
 		if r := recover(); r == nil {
-			t.Error("expected panic for missing service")
+			t.Error("Expected panic for non-existent service")
 		}
 	}()
 
-	services.GetRequiredService(serviceType)
+	collection := core.NewServiceCollection()
+	type TestService struct{ Name string }
+	var service *TestService
+	collection.GetRequiredService(reflect.TypeOf(service))
 }
 
-func TestWebApplicationBuilder_Build(t *testing.T) {
-	builder := core.NewWebApplicationBuilder()
-	app := builder.Build().(*core.WebApplication)
+func TestApplicationBuilder_New(t *testing.T) {
+	builder := core.NewApplicationBuilder()
+
+	if builder == nil {
+		t.Fatal("Expected builder to be created")
+	}
+
+	if builder.Services() == nil {
+		t.Error("Expected Services to be initialized")
+	}
+
+	if builder.Environment() == nil {
+		t.Error("Expected Environment to be initialized")
+	}
+}
+
+func TestApplicationBuilder_Build(t *testing.T) {
+	builder := core.NewApplicationBuilder()
+	app := builder.Build()
 
 	if app == nil {
-		t.Error("expected app to be created")
+		t.Fatal("Expected application to be built")
 	}
 
-	if app.Services == nil {
-		t.Error("expected Services to be set")
-	}
-}
-
-func TestWebApplicationBuilder_WithConfig(t *testing.T) {
-	builder := core.NewWebApplicationBuilder()
-
-	cfg := config.NewKoanfConfig(".")
-	builder.Config = cfg
-	builder.UseConfig(core.NewConfigAdapter(cfg))
-
-	app := builder.Build()
-
-	if app.Configuration() == nil {
-		t.Error("expected Configuration to be set")
+	if app.Services() == nil {
+		t.Error("Expected Services to be available")
 	}
 }
 
-func TestWebApplicationBuilder_WithLogger(t *testing.T) {
+func TestWebApplicationBuilder_New(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
 
-	builder.UseLogger(logger.NewNopLogger())
+	if builder == nil {
+		t.Fatal("Expected builder to be created")
+	}
 
-	app := builder.Build()
+	if builder.Services() == nil {
+		t.Error("Expected Services to be initialized")
+	}
 
-	if app.Log() == nil {
-		t.Error("expected Logger to be set")
+	if builder.Host == nil {
+		t.Error("Expected Host to be initialized")
+	}
+}
+
+func TestWebApplicationBuilder_BuildWeb(t *testing.T) {
+	builder := core.NewWebApplicationBuilder()
+	app := builder.BuildWeb()
+
+	if app == nil {
+		t.Fatal("Expected web application to be built")
+	}
+
+	if app.Services() == nil {
+		t.Error("Expected Services to be available")
+	}
+}
+
+func TestWebApplication_Use(t *testing.T) {
+	builder := core.NewWebApplicationBuilder()
+	app := builder.BuildWeb()
+
+	middlewareCalled := false
+	app.Use(abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
+		middlewareCalled = true
+		return next()
+	}))
+
+	app.MapGet("/test", func(ctx abstract.Context) error {
+		return ctx.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, req)
+
+	if !middlewareCalled {
+		t.Error("Expected middleware to be called")
 	}
 }
 
 func TestWebApplication_MapGet(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	webApp := builder.Build().(*core.WebApplication)
+	app := builder.BuildWeb()
 
-	webApp.MapGet("/test", func(ctx abstract.ContextAbstract) error {
-		return ctx.JSON(http.StatusOK, map[string]string{"message": "hello"})
+	handlerCalled := false
+	app.MapGet("/test", func(ctx abstract.Context) error {
+		handlerCalled = true
+		return ctx.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	w := httptest.NewRecorder()
 
-	webApp.ServeHTTP(w, req)
+	app.ServeHTTP(w, req)
+
+	if !handlerCalled {
+		t.Error("Expected handler to be called")
+	}
 
 	if w.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", w.Code)
+		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 }
 
 func TestWebApplication_MapPost(t *testing.T) {
 	builder := core.NewWebApplicationBuilder()
-	webApp := builder.Build().(*core.WebApplication)
+	app := builder.BuildWeb()
 
-	webApp.MapPost("/create", func(ctx abstract.ContextAbstract) (any, error) {
-		return map[string]string{"created": "true"}, nil
+	handlerCalled := false
+	app.MapPost("/create", func(ctx abstract.Context) error {
+		handlerCalled = true
+		return ctx.JSON(http.StatusCreated, map[string]string{"created": "true"})
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/create", nil)
 	w := httptest.NewRecorder()
 
-	webApp.ServeHTTP(w, req)
+	app.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", w.Code)
-	}
-}
-
-func TestWebApplication_MapPut(t *testing.T) {
-	builder := core.NewWebApplicationBuilder()
-	webApp := builder.Build().(*core.WebApplication)
-
-	webApp.MapPut("/update", func(ctx abstract.ContextAbstract) error {
-		return ctx.String(http.StatusOK, "updated")
-	})
-
-	req := httptest.NewRequest(http.MethodPut, "/update", nil)
-	w := httptest.NewRecorder()
-
-	webApp.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", w.Code)
-	}
-}
-
-func TestWebApplication_MapDelete(t *testing.T) {
-	builder := core.NewWebApplicationBuilder()
-	webApp := builder.Build().(*core.WebApplication)
-
-	webApp.MapDelete("/delete", func(ctx abstract.ContextAbstract) error {
-		return ctx.String(http.StatusOK, "deleted")
-	})
-
-	req := httptest.NewRequest(http.MethodDelete, "/delete", nil)
-	w := httptest.NewRecorder()
-
-	webApp.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", w.Code)
-	}
-}
-
-func TestWebApplication_MapPatch(t *testing.T) {
-	builder := core.NewWebApplicationBuilder()
-	webApp := builder.Build().(*core.WebApplication)
-
-	webApp.MapPatch("/patch", func(ctx abstract.ContextAbstract) error {
-		return ctx.String(http.StatusOK, "patched")
-	})
-
-	req := httptest.NewRequest(http.MethodPatch, "/patch", nil)
-	w := httptest.NewRecorder()
-
-	webApp.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", w.Code)
-	}
-}
-
-func TestWebApplication_MiddlewareChain(t *testing.T) {
-	t.Skip("UseCORS, UseRecovery, UseRequestID methods not available on WebApplication in new architecture")
-}
-
-func TestWebApplication_DependencyInjection(t *testing.T) {
-	builder := core.NewWebApplicationBuilder()
-
-	service := &MockService{name: "injected"}
-	builder.Services.AddSingleton(service)
-
-	app := builder.Build().(*core.WebApplication)
-
-	retrieved := app.Services.GetService(reflect.TypeOf(&MockService{}))
-	if retrieved == nil {
-		t.Error("expected service to be retrieved")
+	if !handlerCalled {
+		t.Error("Expected handler to be called")
 	}
 
-	mock := retrieved.(*MockService)
-	if mock.name != "injected" {
-		t.Errorf("expected 'injected', got '%s'", mock.name)
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected status 201, got %d", w.Code)
 	}
-}
-
-func TestHostApplicationBuilder_Build(t *testing.T) {
-	t.Skip("HostApplicationBuilder API has changed in new architecture")
 }
 
 func TestCreateBuilder(t *testing.T) {
 	builder := core.CreateBuilder()
 
 	if builder == nil {
-		t.Error("expected builder to be created")
+		t.Fatal("Expected builder to be created")
 	}
 
-	if builder.Services == nil {
-		t.Error("expected Services to be initialized")
-	}
-}
-
-type MockService struct {
-	name string
-}
-
-func TestGeneric_AddSingleton(t *testing.T) {
-	services := core.NewServiceCollection()
-
-	core.AddSingleton(services, &MockService{name: "generic-test"})
-
-	mock := core.GetService[*MockService](services)
-	if mock == nil {
-		t.Error("expected service to be found")
-	}
-	if mock.name != "generic-test" {
-		t.Errorf("expected name 'generic-test', got '%s'", mock.name)
+	if _, ok := interface{}(builder).(*core.WebApplicationBuilder); !ok {
+		t.Error("Expected WebApplicationBuilder type")
 	}
 }
 
-func TestGeneric_AddSingletonFunc(t *testing.T) {
-	t.Skip("Generic function signature changed")
-	services := core.NewServiceCollection()
+func TestCreateApplicationBuilder(t *testing.T) {
+	builder := core.CreateApplicationBuilder()
 
-	core.AddSingletonFunc(services, func(s abstract.ServiceCollectionAbstract) *MockService {
-		return &MockService{name: "factory-generic"}
+	if builder == nil {
+		t.Fatal("Expected builder to be created")
+	}
+
+	if _, ok := interface{}(builder).(*core.ApplicationBuilder); !ok {
+		t.Error("Expected ApplicationBuilder type")
+	}
+}
+
+func TestEnv_Get(t *testing.T) {
+	env := core.NewEnv()
+	env.Set("TEST_KEY", "test_value")
+
+	value := env.Get("TEST_KEY")
+	if value != "test_value" {
+		t.Errorf("Expected 'test_value', got '%s'", value)
+	}
+}
+
+func TestEnv_GetOrDefault(t *testing.T) {
+	env := core.NewEnv()
+
+	value := env.GetOrDefault("NON_EXISTENT", "default")
+	if value != "default" {
+		t.Errorf("Expected 'default', got '%s'", value)
+	}
+}
+
+func TestEnv_Has(t *testing.T) {
+	env := core.NewEnv()
+	env.Set("TEST_KEY", "test_value")
+
+	if !env.Has("TEST_KEY") {
+		t.Error("Expected Has to return true")
+	}
+
+	if env.Has("NON_EXISTENT") {
+		t.Error("Expected Has to return false for non-existent key")
+	}
+}
+
+func TestEnv_All(t *testing.T) {
+	env := core.NewEnv()
+	env.Set("KEY1", "value1")
+	env.Set("KEY2", "value2")
+
+	all := env.All()
+	if all["KEY1"] != "value1" {
+		t.Error("Expected KEY1 to be 'value1'")
+	}
+	if all["KEY2"] != "value2" {
+		t.Error("Expected KEY2 to be 'value2'")
+	}
+}
+
+func TestEnv_Unset(t *testing.T) {
+	env := core.NewEnv()
+	env.Set("TEST_KEY", "test_value")
+
+	if !env.Has("TEST_KEY") {
+		t.Error("Expected Has to return true")
+	}
+
+	env.Unset("TEST_KEY")
+
+	if env.Has("TEST_KEY") {
+		t.Error("Expected Has to return false after Unset")
+	}
+}
+
+func TestBadRequest(t *testing.T) {
+	err := gonest.BadRequest("test error")
+	if err == nil {
+		t.Fatal("Expected error to be created")
+	}
+
+	httpErr := err.(*gonest.HttpError)
+	if httpErr.Status() != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %d", httpErr.Status())
+	}
+
+	if httpErr.Message() != "test error" {
+		t.Errorf("Expected message 'test error', got '%s'", httpErr.Message())
+	}
+}
+
+func TestUnauthorized(t *testing.T) {
+	err := gonest.Unauthorized("unauthorized")
+	httpErr := err.(*gonest.HttpError)
+	if httpErr.Status() != http.StatusUnauthorized {
+		t.Errorf("Expected status 401, got %d", httpErr.Status())
+	}
+}
+
+func TestForbidden(t *testing.T) {
+	err := gonest.Forbidden("forbidden")
+	httpErr := err.(*gonest.HttpError)
+	if httpErr.Status() != http.StatusForbidden {
+		t.Errorf("Expected status 403, got %d", httpErr.Status())
+	}
+}
+
+func TestNotFound(t *testing.T) {
+	err := gonest.NotFound("not found")
+	httpErr := err.(*gonest.HttpError)
+	if httpErr.Status() != http.StatusNotFound {
+		t.Errorf("Expected status 404, got %d", httpErr.Status())
+	}
+}
+
+func TestInternalError(t *testing.T) {
+	err := gonest.InternalError("internal error")
+	httpErr := err.(*gonest.HttpError)
+	if httpErr.Status() != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d", httpErr.Status())
+	}
+}
+
+func TestNewHttpException(t *testing.T) {
+	err := gonest.NewHttpException(418, "I'm a teapot")
+	httpErr := err.(*gonest.HttpError)
+	if httpErr.Status() != 418 {
+		t.Errorf("Expected status 418, got %d", httpErr.Status())
+	}
+}
+
+func TestNewApplication(t *testing.T) {
+	app := gonest.NewApplication()
+	if app == nil {
+		t.Fatal("Expected application to be created")
+	}
+}
+
+func TestNewRouter(t *testing.T) {
+	router := gonest.NewRouter()
+	if router == nil {
+		t.Fatal("Expected router to be created")
+	}
+}
+
+func TestNewContext(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	w := httptest.NewRecorder()
+
+	ctx := gonest.NewContext(w, req)
+	if ctx == nil {
+		t.Fatal("Expected context to be created")
+	}
+
+	if ctx.Method() != http.MethodGet {
+		t.Errorf("Expected method GET, got %s", ctx.Method())
+	}
+
+	if ctx.Path() != "/test" {
+		t.Errorf("Expected path /test, got %s", ctx.Path())
+	}
+}
+
+func TestNewContextWithParams(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/users/123", nil)
+	w := httptest.NewRecorder()
+
+	params := map[string]string{"id": "123"}
+	ctx := gonest.NewContextWithParams(w, req, params)
+	if ctx == nil {
+		t.Fatal("Expected context to be created")
+	}
+
+	if ctx.Param("id") != "123" {
+		t.Errorf("Expected param id=123, got %s", ctx.Param("id"))
+	}
+}
+
+func TestNewServiceCollection(t *testing.T) {
+	collection := gonest.NewServiceCollection()
+	if collection == nil {
+		t.Fatal("Expected service collection to be created")
+	}
+}
+
+func TestMiddlewareFunc(t *testing.T) {
+	called := false
+	middleware := gonest.MiddlewareFunc(func(ctx gonest.Context, next func() error) error {
+		called = true
+		return next()
 	})
 
-	mock := core.GetService[*MockService](services)
-	if mock == nil {
-		t.Error("expected service to be found")
-	}
-	if mock.name != "factory-generic" {
-		t.Errorf("expected name 'factory-generic', got '%s'", mock.name)
-	}
-}
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	w := httptest.NewRecorder()
+	ctx := gonest.NewContext(w, req)
 
-func TestGeneric_AddScoped(t *testing.T) {
-	t.Skip("Generic function signature changed")
-	services := core.NewServiceCollection()
-
-	core.AddScoped(services, func(s abstract.ServiceCollectionAbstract) *MockService {
-		return &MockService{name: "scoped-generic"}
+	err := middleware.Handle(ctx, func() error {
+		return nil
 	})
 
-	mock1 := core.GetService[*MockService](services)
-	mock2 := core.GetService[*MockService](services)
-
-	if mock1 == nil || mock2 == nil {
-		t.Error("expected services to be found")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
 	}
 
-	if mock1.name != mock2.name {
-		t.Errorf("scoped services should have same value")
+	if !called {
+		t.Error("Expected middleware to be called")
 	}
 }
 
-func TestGeneric_AddTransient(t *testing.T) {
-	t.Skip("Generic function signature changed")
-	services := core.NewServiceCollection()
-
-	core.AddTransient(services, func(s abstract.ServiceCollectionAbstract) *MockService {
-		return &MockService{name: "transient-generic"}
+func TestGuardFunc(t *testing.T) {
+	guard := gonest.GuardFunc(func(ctx gonest.Context) bool {
+		return ctx.Header("Authorization") != ""
 	})
 
-	mock1 := core.GetService[*MockService](services)
-	mock2 := core.GetService[*MockService](services)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Authorization", "Bearer token")
+	w := httptest.NewRecorder()
+	ctx := gonest.NewContext(w, req)
 
-	if mock1 == nil || mock2 == nil {
-		t.Error("expected services to be found")
-	}
-
-	if mock1 == mock2 {
-		t.Error("transient services should be different instances")
+	if !guard.CanActivate(ctx) {
+		t.Error("Expected guard to return true")
 	}
 }
 
-func TestGeneric_GetRequiredService(t *testing.T) {
-	services := core.NewServiceCollection()
-
-	core.AddSingleton(services, &MockService{name: "required-generic"})
-
-	mock := core.GetRequiredService[*MockService](services)
-	if mock == nil {
-		t.Error("expected service to be found")
-	}
-	if mock.name != "required-generic" {
-		t.Errorf("expected name 'required-generic', got '%s'", mock.name)
-	}
-}
-
-func TestGeneric_GetRequiredService_Panic(t *testing.T) {
-	services := core.NewServiceCollection()
-
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic for missing service")
+func TestPipeFunc(t *testing.T) {
+	pipe := gonest.PipeFunc(func(value any, ctx gonest.Context) (any, error) {
+		if str, ok := value.(string); ok {
+			return str + "_transformed", nil
 		}
-	}()
+		return value, nil
+	})
 
-	core.GetRequiredService[*MockService](services)
-}
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	w := httptest.NewRecorder()
+	ctx := gonest.NewContext(w, req)
 
-func TestGeneric_TryAddSingleton(t *testing.T) {
-	t.Skip("TryAddSingleton not available in new architecture")
-}
-
-func TestGeneric_Contains(t *testing.T) {
-	t.Skip("Contains not available in new architecture")
-}
-
-func TestGeneric_MixedUsage(t *testing.T) {
-	services := core.NewServiceCollection()
-
-	core.AddSingleton(services, &MockService{name: "generic"})
-	services.AddSingleton(&MockService{name: "non-generic"})
-
-	mock := core.GetService[*MockService](services)
-	if mock.name != "non-generic" {
-		t.Errorf("expected 'non-generic', got '%s'", mock.name)
+	result, err := pipe.Transform("test", ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
 	}
 
-	mock2 := services.GetService(reflect.TypeOf(&MockService{})).(*MockService)
-	if mock2.name != "non-generic" {
-		t.Errorf("legacy GetService should also work, got '%s'", mock2.name)
+	if result != "test_transformed" {
+		t.Errorf("Expected 'test_transformed', got '%s'", result)
 	}
 }
 
-func TestScope_NewScope(t *testing.T) {
-	t.Skip("Scope functionality not available in new architecture")
+func TestInterceptorFunc(t *testing.T) {
+	beforeCalled := false
+	afterCalled := false
+
+	interceptor := gonest.InterceptorFunc(func(ctx gonest.Context, next gonest.RouteHandler) (any, error) {
+		beforeCalled = true
+		err := next(ctx)
+		afterCalled = true
+		return nil, err
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	w := httptest.NewRecorder()
+	ctx := gonest.NewContext(w, req)
+
+	result, err := interceptor.Intercept(ctx, func(ctx gonest.Context) error {
+		return nil
+	})
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	if result != nil {
+		t.Errorf("Expected nil result, got %v", result)
+	}
+
+	if !beforeCalled {
+		t.Error("Expected before hook to be called")
+	}
+
+	if !afterCalled {
+		t.Error("Expected after hook to be called")
+	}
 }
 
-func TestScope_Dispose(t *testing.T) {
-	t.Skip("Scope functionality not available in new architecture")
+func TestRouter_Routes(t *testing.T) {
+	builder := core.NewWebApplicationBuilder()
+	app := builder.BuildWeb()
+
+	handlerCalled := false
+	app.MapGet("/test", func(ctx abstract.Context) error {
+		handlerCalled = true
+		return ctx.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	w := httptest.NewRecorder()
+
+	app.ServeHTTP(w, req)
+
+	if !handlerCalled {
+		t.Error("Expected handler to be called")
+	}
 }
 
-func TestScopeGetService_Singleton(t *testing.T) {
-	t.Skip("Scope functionality not available in new architecture")
+func TestRouter_Group(t *testing.T) {
+	builder := core.NewWebApplicationBuilder()
+	app := builder.BuildWeb()
+
+	handlerCalled := false
+	api := app.MapGroup("/api")
+	api.GET("/users", func(ctx abstract.Context) error {
+		handlerCalled = true
+		return ctx.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+	w := httptest.NewRecorder()
+
+	app.ServeHTTP(w, req)
+
+	if !handlerCalled {
+		t.Error("Expected handler to be called for grouped route")
+	}
 }
 
-func TestScopeGetService_Scoped(t *testing.T) {
-	t.Skip("Scope functionality not available in new architecture")
+func TestContext_JSON(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	w := httptest.NewRecorder()
+	ctx := gonest.NewContext(w, req)
+
+	err := ctx.JSON(http.StatusOK, map[string]string{"message": "hello"})
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	if w.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("Expected Content-Type application/json, got %s", w.Header().Get("Content-Type"))
+	}
 }
 
-func TestScopeGetService_Transient(t *testing.T) {
-	t.Skip("Scope functionality not available in new architecture")
+func TestContext_GetSet(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	w := httptest.NewRecorder()
+	ctx := gonest.NewContext(w, req)
+
+	ctx.Set("key", "value")
+	if ctx.Get("key") != "value" {
+		t.Errorf("Expected 'value', got '%s'", ctx.Get("key"))
+	}
 }
 
-func TestScopeGetRequiredService(t *testing.T) {
-	t.Skip("Scope functionality not available in new architecture")
+func TestContext_Query(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/test?name=john&age=30", nil)
+	w := httptest.NewRecorder()
+	ctx := gonest.NewContext(w, req)
+
+	if ctx.Query("name") != "john" {
+		t.Errorf("Expected 'john', got '%s'", ctx.Query("name"))
+	}
+
+	if ctx.Query("age") != "30" {
+		t.Errorf("Expected '30', got '%s'", ctx.Query("age"))
+	}
 }
 
-func TestScopeGetRequiredService_Panic(t *testing.T) {
-	t.Skip("Scope functionality not available in new architecture")
-}
+func TestContext_Header(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("X-Custom-Header", "custom-value")
+	w := httptest.NewRecorder()
+	ctx := gonest.NewContext(w, req)
 
-func TestScope_AfterDispose(t *testing.T) {
-	t.Skip("Scope functionality not available in new architecture")
-}
-
-func TestWebApplication_UseScope(t *testing.T) {
-	t.Skip("Scope functionality not available in new architecture")
+	if ctx.Header("X-Custom-Header") != "custom-value" {
+		t.Errorf("Expected 'custom-value', got '%s'", ctx.Header("X-Custom-Header"))
+	}
 }

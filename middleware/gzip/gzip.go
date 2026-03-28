@@ -58,7 +58,7 @@ func (w *gzipResponseWriter) Flush() {
 	}
 }
 
-func New(cfg *Config) abstract.MiddlewareAbstract {
+func New(cfg *Config) abstract.Middleware {
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
@@ -75,7 +75,7 @@ func New(cfg *Config) abstract.MiddlewareAbstract {
 		},
 	}
 
-	return abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
 		if ctx.Header("Accept-Encoding") != "gzip" {
 			return next()
 		}

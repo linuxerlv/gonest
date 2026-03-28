@@ -12,31 +12,31 @@ import (
 type Route struct {
 	method       string
 	path         string
-	handler      abstract.RouteHandlerAbstract
-	guards       []abstract.GuardAbstract
-	interceptors []abstract.InterceptorAbstract
-	pipes        []abstract.PipeAbstract
+	handler      abstract.RouteHandler
+	guards       []abstract.Guard
+	interceptors []abstract.Interceptor
+	pipes        []abstract.Pipe
 }
 
-func (r *Route) Method() string                         { return r.method }
-func (r *Route) Path() string                           { return r.path }
-func (r *Route) Handler() abstract.RouteHandlerAbstract { return r.handler }
+func (r *Route) Method() string                 { return r.method }
+func (r *Route) Path() string                   { return r.path }
+func (r *Route) Handler() abstract.RouteHandler { return r.handler }
 
 type RouteBuilder struct {
 	route *Route
 }
 
-func (b *RouteBuilder) Guard(guard abstract.GuardAbstract) abstract.RouteBuilderAbstract {
+func (b *RouteBuilder) Guard(guard abstract.Guard) abstract.RouteBuilder {
 	b.route.guards = append(b.route.guards, guard)
 	return b
 }
 
-func (b *RouteBuilder) Interceptor(interceptor abstract.InterceptorAbstract) abstract.RouteBuilderAbstract {
+func (b *RouteBuilder) Interceptor(interceptor abstract.Interceptor) abstract.RouteBuilder {
 	b.route.interceptors = append(b.route.interceptors, interceptor)
 	return b
 }
 
-func (b *RouteBuilder) Pipe(pipe abstract.PipeAbstract) abstract.RouteBuilderAbstract {
+func (b *RouteBuilder) Pipe(pipe abstract.Pipe) abstract.RouteBuilder {
 	b.route.pipes = append(b.route.pipes, pipe)
 	return b
 }
@@ -46,27 +46,27 @@ type RouteGroup struct {
 	router *HttpRouter
 }
 
-func (g *RouteGroup) GET(path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (g *RouteGroup) GET(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return g.router.GET(g.prefix+path, handler)
 }
 
-func (g *RouteGroup) POST(path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (g *RouteGroup) POST(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return g.router.POST(g.prefix+path, handler)
 }
 
-func (g *RouteGroup) PUT(path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (g *RouteGroup) PUT(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return g.router.PUT(g.prefix+path, handler)
 }
 
-func (g *RouteGroup) DELETE(path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (g *RouteGroup) DELETE(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return g.router.DELETE(g.prefix+path, handler)
 }
 
-func (g *RouteGroup) PATCH(path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (g *RouteGroup) PATCH(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return g.router.PATCH(g.prefix+path, handler)
 }
 
-func (g *RouteGroup) OPTIONS(path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (g *RouteGroup) OPTIONS(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return g.router.OPTIONS(g.prefix+path, handler)
 }
 
@@ -88,42 +88,42 @@ func NewRouter() *HttpRouter {
 	}
 }
 
-func (r *HttpRouter) GET(path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (r *HttpRouter) GET(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return r.addRoute("GET", path, handler)
 }
 
-func (r *HttpRouter) POST(path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (r *HttpRouter) POST(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return r.addRoute("POST", path, handler)
 }
 
-func (r *HttpRouter) PUT(path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (r *HttpRouter) PUT(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return r.addRoute("PUT", path, handler)
 }
 
-func (r *HttpRouter) DELETE(path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (r *HttpRouter) DELETE(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return r.addRoute("DELETE", path, handler)
 }
 
-func (r *HttpRouter) PATCH(path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (r *HttpRouter) PATCH(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return r.addRoute("PATCH", path, handler)
 }
 
-func (r *HttpRouter) OPTIONS(path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (r *HttpRouter) OPTIONS(path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return r.addRoute("OPTIONS", path, handler)
 }
 
-func (r *HttpRouter) Group(prefix string) abstract.RouteGroupAbstract {
+func (r *HttpRouter) Group(prefix string) abstract.RouteGroup {
 	return &RouteGroup{prefix: prefix, router: r}
 }
 
-func (r *HttpRouter) addRoute(method, path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (r *HttpRouter) addRoute(method, path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	route := &Route{
 		method:       method,
 		path:         path,
 		handler:      handler,
-		guards:       make([]abstract.GuardAbstract, 0),
-		interceptors: make([]abstract.InterceptorAbstract, 0),
-		pipes:        make([]abstract.PipeAbstract, 0),
+		guards:       make([]abstract.Guard, 0),
+		interceptors: make([]abstract.Interceptor, 0),
+		pipes:        make([]abstract.Pipe, 0),
 	}
 
 	r.mu.Lock()
@@ -134,7 +134,7 @@ func (r *HttpRouter) addRoute(method, path string, handler abstract.RouteHandler
 	return &RouteBuilder{route: route}
 }
 
-func (r *HttpRouter) AddRoute(method, path string, handler abstract.RouteHandlerAbstract) abstract.RouteBuilderAbstract {
+func (r *HttpRouter) AddRoute(method, path string, handler abstract.RouteHandler) abstract.RouteBuilder {
 	return r.addRoute(method, path, handler)
 }
 
@@ -159,7 +159,7 @@ func (r *HttpRouter) insertRoute(method, path string, route *Route) {
 	node.routes[method] = route
 }
 
-func (r *HttpRouter) Match(req *http.Request) (abstract.RouteAbstract, map[string]string) {
+func (r *HttpRouter) Match(req *http.Request) (abstract.Route, map[string]string) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -215,7 +215,7 @@ func (r *HttpRouter) ServeHTTP(w http.ResponseWriter, req *http.Request, app *Ap
 	allGuards := append(app.guards, route.(*Route).guards...)
 	if len(allGuards) > 0 {
 		actualHandler := handler
-		handler = func(c abstract.ContextAbstract) error {
+		handler = func(c abstract.Context) error {
 			for _, guard := range allGuards {
 				if !guard.CanActivate(c) {
 					return abstract.Forbidden("access denied")
@@ -230,17 +230,17 @@ func (r *HttpRouter) ServeHTTP(w http.ResponseWriter, req *http.Request, app *Ap
 	for i := len(app.middlewares) - 1; i >= 0; i-- {
 		mw := app.middlewares[i]
 		next := handler
-		handler = func(c abstract.ContextAbstract) error {
+		handler = func(c abstract.Context) error {
 			return mw.Handle(c, func() error { return next(c) })
 		}
 	}
 
 	allInterceptors := append(app.interceptors, route.(*Route).interceptors...)
-	var finalHandler abstract.RouteHandlerAbstract = handler
+	var finalHandler abstract.RouteHandler = handler
 	for i := len(allInterceptors) - 1; i >= 0; i-- {
 		interceptor := allInterceptors[i]
 		next := finalHandler
-		finalHandler = func(c abstract.ContextAbstract) error {
+		finalHandler = func(c abstract.Context) error {
 			_, err := interceptor.Intercept(c, next)
 			return err
 		}
@@ -264,11 +264,11 @@ func (r *HttpRouter) ServeHTTP(w http.ResponseWriter, req *http.Request, app *Ap
 	}
 }
 
-func writeError(ctx abstract.ContextAbstract, err error) {
+func writeError(ctx abstract.Context, err error) {
 	if ctx.HeaderWritten() {
 		return
 	}
-	if httpErr, ok := err.(*abstract.HttpException); ok {
+	if httpErr, ok := err.(abstract.HttpException); ok {
 		ctx.JSON(httpErr.Status(), map[string]interface{}{
 			"code":    httpErr.Status(),
 			"message": httpErr.Message(),
@@ -289,7 +289,7 @@ func splitPath(path string) []string {
 	return strings.Split(path, "/")
 }
 
-var _ abstract.RouterAbstract = (*HttpRouter)(nil)
-var _ abstract.RouteBuilderAbstract = (*RouteBuilder)(nil)
-var _ abstract.RouteGroupAbstract = (*RouteGroup)(nil)
-var _ abstract.RouteAbstract = (*Route)(nil)
+var _ abstract.Router = (*HttpRouter)(nil)
+var _ abstract.RouteBuilder = (*RouteBuilder)(nil)
+var _ abstract.RouteGroup = (*RouteGroup)(nil)
+var _ abstract.Route = (*Route)(nil)

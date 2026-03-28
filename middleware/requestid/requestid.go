@@ -21,7 +21,7 @@ func DefaultConfig() *Config {
 	}
 }
 
-func New(cfg *Config) abstract.MiddlewareAbstract {
+func New(cfg *Config) abstract.Middleware {
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
@@ -32,7 +32,7 @@ func New(cfg *Config) abstract.MiddlewareAbstract {
 		cfg.Generator = generateRequestID
 	}
 
-	return abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
 		requestID := ctx.Header(cfg.HeaderName)
 		if requestID == "" {
 			requestID = cfg.Generator()
@@ -54,7 +54,7 @@ func generateRequestIDLegacy() string {
 	return fmt.Sprintf("%d-%d", time.Now().UnixNano(), time.Now().Nanosecond())
 }
 
-func GetRequestID(ctx abstract.ContextAbstract) string {
+func GetRequestID(ctx abstract.Context) string {
 	if id, ok := ctx.Get("request-id").(string); ok {
 		return id
 	}

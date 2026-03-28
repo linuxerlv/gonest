@@ -6,31 +6,22 @@ import (
 	"github.com/linuxerlv/gonest/core/abstract"
 )
 
-// Context 基础上下文接口（所有协议共用） - 引用 abstract
-type Context = abstract.ContextRunnerAbstract
+type Context = abstract.ContextRunner
 
-// MessageType WebSocket 消息类型 - 引用 abstract
-type MessageType = abstract.MessageTypeAbstract
+type MessageType = abstract.MessageType
 
-// WSContext WebSocket 连接上下文 - 引用 abstract
-type WSContext = abstract.WSContextAbstract
+type WSContext = abstract.WSContext
 
-// WSHandler WebSocket 处理函数 - 引用 abstract
-type WSHandler = abstract.WSHandlerAbstract
+type WSHandler = abstract.WSHandler
 
-// SSEContext Server-Sent Events 上下文 - 引用 abstract
-type SSEContext = abstract.SSEContextAbstract
+type SSEContext = abstract.SSEContext
 
-// SSEHandler SSE 处理函数 - 引用 abstract
-type SSEHandler = abstract.SSEHandlerAbstract
+type SSEHandler = abstract.SSEHandler
 
-// GRPCContext gRPC 请求上下文 - 引用 abstract
-type GRPCContext = abstract.GRPCContextAbstract
+type GRPCContext = abstract.GRPCContext
 
-// ProtocolAdapter 协议适配器接口 - 引用 abstract
-type ProtocolAdapter = abstract.ProtocolAdapterAbstract
+type ProtocolAdapter = abstract.ProtocolAdapter
 
-// HTTPContext HTTP 请求上下文（包含标准HTTP功能）
 type HTTPContext interface {
 	Context
 	Request() *http.Request
@@ -62,9 +53,9 @@ type HTTPServer interface {
 	StaticFile(path string, file string)
 }
 
-type WSServer = abstract.WSServerAbstract
-type SSEServer = abstract.SSEServerAbstract
-type GRPCServer = abstract.GRPCServerAbstract
+type WSServer = abstract.WSServer
+type SSEServer = abstract.SSEServer
+type GRPCServer = abstract.GRPCServer
 
 type RouteBuilder struct {
 	middlewares  []any
@@ -121,9 +112,9 @@ func (g *RouteGroup) OPTIONS(path string, handler HTTPHandler) *RouteBuilder {
 }
 
 const (
-	TextMessage   MessageType = abstract.TextMessageAbstract
-	BinaryMessage MessageType = abstract.BinaryMessageAbstract
-	CloseMessage  MessageType = abstract.CloseMessageAbstract
-	PingMessage   MessageType = abstract.PingMessageAbstract
-	PongMessage   MessageType = abstract.PongMessageAbstract
+	TextMessage   MessageType = abstract.TextMessage
+	BinaryMessage MessageType = abstract.BinaryMessage
+	CloseMessage  MessageType = abstract.CloseMessage
+	PingMessage   MessageType = abstract.PingMessage
+	PongMessage   MessageType = abstract.PongMessage
 )

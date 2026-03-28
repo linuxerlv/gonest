@@ -22,12 +22,12 @@ func DefaultConfig() *Config {
 	}
 }
 
-func New(cfg *Config) abstract.MiddlewareAbstract {
+func New(cfg *Config) abstract.Middleware {
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
 
-	return abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
 		done := make(chan error, 1)
 
 		go func() {
@@ -43,12 +43,12 @@ func New(cfg *Config) abstract.MiddlewareAbstract {
 	})
 }
 
-func NewWithContext(cfg *Config) abstract.MiddlewareAbstract {
+func NewWithContext(cfg *Config) abstract.Middleware {
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
 
-	return abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
 		c, cancel := context.WithTimeout(ctx.Context(), cfg.Timeout)
 		defer cancel()
 

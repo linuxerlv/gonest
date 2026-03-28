@@ -11,10 +11,10 @@ import (
 type Config struct {
 	Limit     int
 	Window    time.Duration
-	KeyFunc   func(ctx abstract.ContextAbstract) string
+	KeyFunc   func(ctx abstract.Context) string
 	ErrorCode int
 	ErrorMsg  string
-	SkipFunc  func(ctx abstract.ContextAbstract) bool
+	SkipFunc  func(ctx abstract.Context) bool
 }
 
 func DefaultConfig() *Config {
@@ -23,7 +23,7 @@ func DefaultConfig() *Config {
 		Window:    time.Minute,
 		ErrorCode: http.StatusTooManyRequests,
 		ErrorMsg:  "rate limit exceeded",
-		KeyFunc: func(ctx abstract.ContextAbstract) string {
+		KeyFunc: func(ctx abstract.Context) string {
 			return ctx.Request().RemoteAddr
 		},
 	}
@@ -96,7 +96,7 @@ func (rl *Limiter) cleanup() {
 	}
 }
 
-func New(cfg *Config) abstract.MiddlewareAbstract {
+func New(cfg *Config) abstract.Middleware {
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
@@ -106,7 +106,7 @@ func New(cfg *Config) abstract.MiddlewareAbstract {
 
 	limiter := NewLimiter(cfg.Limit, cfg.Window)
 
-	return abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
 		if cfg.SkipFunc != nil && cfg.SkipFunc(ctx) {
 			return next()
 		}
@@ -121,12 +121,12 @@ func New(cfg *Config) abstract.MiddlewareAbstract {
 	})
 }
 
-func NewWithLimiter(limiter *Limiter, keyFunc func(ctx abstract.ContextAbstract) string) abstract.MiddlewareAbstract {
+func NewWithLimiter(limiter *Limiter, keyFunc func(ctx abstract.Context) string) abstract.Middleware {
 	if keyFunc == nil {
 		keyFunc = DefaultConfig().KeyFunc
 	}
 
-	return abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
 		key := keyFunc(ctx)
 
 		if !limiter.Allow(key) {

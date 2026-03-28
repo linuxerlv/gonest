@@ -12,18 +12,16 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-// ZapLogger zap日志实现
 type ZapLogger struct {
 	logger     *zap.Logger
 	sugar      *zap.SugaredLogger
 	level      zapcore.Level
-	fields     []abstract.FieldAbstract
+	fields     []abstract.Field
 	name       string
 	mu         sync.RWMutex
 	lumberjack *lumberjack.Logger
 }
 
-// NewZapLogger 创建zap日志实例
 func NewZapLogger(cfg Config) (*ZapLogger, error) {
 	core, level, lj, err := buildZapCore(cfg)
 	if err != nil {
@@ -41,7 +39,6 @@ func NewZapLogger(cfg Config) (*ZapLogger, error) {
 	}, nil
 }
 
-// NewZapLoggerFromZap 从zap实例创建
 func NewZapLoggerFromZap(zapLogger *zap.Logger) *ZapLogger {
 	return &ZapLogger{
 		logger: zapLogger,
@@ -162,7 +159,7 @@ func toZapLevel(level Level) zapcore.Level {
 	}
 }
 
-func toZapFields(fields []abstract.FieldAbstract) []zap.Field {
+func toZapFields(fields []abstract.Field) []zap.Field {
 	zapFields := make([]zap.Field, 0, len(fields))
 	for _, f := range fields {
 		zapFields = append(zapFields, zap.Any(f.Key(), f.Value()))
@@ -170,47 +167,47 @@ func toZapFields(fields []abstract.FieldAbstract) []zap.Field {
 	return zapFields
 }
 
-func (l *ZapLogger) Debug(msg string, fields ...abstract.FieldAbstract) {
+func (l *ZapLogger) Debug(msg string, fields ...abstract.Field) {
 	l.logger.Debug(msg, toZapFields(fields)...)
 }
 
-func (l *ZapLogger) Info(msg string, fields ...abstract.FieldAbstract) {
+func (l *ZapLogger) Info(msg string, fields ...abstract.Field) {
 	l.logger.Info(msg, toZapFields(fields)...)
 }
 
-func (l *ZapLogger) Warn(msg string, fields ...abstract.FieldAbstract) {
+func (l *ZapLogger) Warn(msg string, fields ...abstract.Field) {
 	l.logger.Warn(msg, toZapFields(fields)...)
 }
 
-func (l *ZapLogger) Error(msg string, fields ...abstract.FieldAbstract) {
+func (l *ZapLogger) Error(msg string, fields ...abstract.Field) {
 	l.logger.Error(msg, toZapFields(fields)...)
 }
 
-func (l *ZapLogger) DPanic(msg string, fields ...abstract.FieldAbstract) {
+func (l *ZapLogger) DPanic(msg string, fields ...abstract.Field) {
 	l.logger.DPanic(msg, toZapFields(fields)...)
 }
 
-func (l *ZapLogger) Panic(msg string, fields ...abstract.FieldAbstract) {
+func (l *ZapLogger) Panic(msg string, fields ...abstract.Field) {
 	l.logger.Panic(msg, toZapFields(fields)...)
 }
 
-func (l *ZapLogger) Fatal(msg string, fields ...abstract.FieldAbstract) {
+func (l *ZapLogger) Fatal(msg string, fields ...abstract.Field) {
 	l.logger.Fatal(msg, toZapFields(fields)...)
 }
 
-func (l *ZapLogger) DebugCtx(ctx context.Context, msg string, fields ...abstract.FieldAbstract) {
+func (l *ZapLogger) DebugCtx(ctx context.Context, msg string, fields ...abstract.Field) {
 	l.logger.Debug(msg, toZapFields(fields)...)
 }
 
-func (l *ZapLogger) InfoCtx(ctx context.Context, msg string, fields ...abstract.FieldAbstract) {
+func (l *ZapLogger) InfoCtx(ctx context.Context, msg string, fields ...abstract.Field) {
 	l.logger.Info(msg, toZapFields(fields)...)
 }
 
-func (l *ZapLogger) WarnCtx(ctx context.Context, msg string, fields ...abstract.FieldAbstract) {
+func (l *ZapLogger) WarnCtx(ctx context.Context, msg string, fields ...abstract.Field) {
 	l.logger.Warn(msg, toZapFields(fields)...)
 }
 
-func (l *ZapLogger) ErrorCtx(ctx context.Context, msg string, fields ...abstract.FieldAbstract) {
+func (l *ZapLogger) ErrorCtx(ctx context.Context, msg string, fields ...abstract.Field) {
 	l.logger.Error(msg, toZapFields(fields)...)
 }
 
@@ -230,9 +227,9 @@ func (l *ZapLogger) Errorf(format string, args ...any) {
 	l.sugar.Errorf(format, args...)
 }
 
-func (l *ZapLogger) With(fields ...abstract.FieldAbstract) Logger {
+func (l *ZapLogger) With(fields ...abstract.Field) Logger {
 	l.mu.RLock()
-	existingFields := make([]abstract.FieldAbstract, len(l.fields))
+	existingFields := make([]abstract.Field, len(l.fields))
 	copy(existingFields, l.fields)
 	l.mu.RUnlock()
 
@@ -311,67 +308,55 @@ func (l *ZapLogger) Close() error {
 	return err
 }
 
-// Raw 返回原始zap实例
 func (l *ZapLogger) Raw() *zap.Logger {
 	return l.logger
 }
 
-// Global logger
 var (
 	globalLogger Logger = &NopLogger{}
 	globalMu     sync.RWMutex
 )
 
-// SetGlobalLogger 设置全局日志
 func SetGlobalLogger(l Logger) {
 	globalMu.Lock()
 	defer globalMu.Unlock()
 	globalLogger = l
 }
 
-// GetGlobalLogger 获取全局日志
 func GetGlobalLogger() Logger {
 	globalMu.RLock()
 	defer globalMu.RUnlock()
 	return globalLogger
 }
 
-// Debug 全局Debug日志
-func Debug(msg string, fields ...abstract.FieldAbstract) {
+func Debug(msg string, fields ...abstract.Field) {
 	GetGlobalLogger().Debug(msg, fields...)
 }
 
-// Info 全局Info日志
-func Info(msg string, fields ...abstract.FieldAbstract) {
+func Info(msg string, fields ...abstract.Field) {
 	GetGlobalLogger().Info(msg, fields...)
 }
 
-// Warn 全局Warn日志
-func Warn(msg string, fields ...abstract.FieldAbstract) {
+func Warn(msg string, fields ...abstract.Field) {
 	GetGlobalLogger().Warn(msg, fields...)
 }
 
-// Error 全局Error日志
-func Error(msg string, fields ...abstract.FieldAbstract) {
+func Error(msg string, fields ...abstract.Field) {
 	GetGlobalLogger().Error(msg, fields...)
 }
 
-// Fatal 全局Fatal日志
-func Fatal(msg string, fields ...abstract.FieldAbstract) {
+func Fatal(msg string, fields ...abstract.Field) {
 	GetGlobalLogger().Fatal(msg, fields...)
 }
 
-// With 创建带字段的子日志
-func With(fields ...abstract.FieldAbstract) Logger {
+func With(fields ...abstract.Field) Logger {
 	return GetGlobalLogger().With(fields...)
 }
 
-// Sync 同步全局日志
 func Sync() error {
 	return GetGlobalLogger().Sync()
 }
 
-// Close 关闭全局日志，释放资源
 func Close() error {
 	return GetGlobalLogger().Close()
 }

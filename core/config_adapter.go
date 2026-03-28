@@ -62,4 +62,4 @@ func (c *ConfigAdapter) Unwrap() config.Config {
 	return c.cfg
 }
 
-var _ abstract.ConfigAbstract = (*ConfigAdapter)(nil)
+var _ abstract.Config = (*ConfigAdapter)(nil)

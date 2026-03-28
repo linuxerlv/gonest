@@ -31,19 +31,19 @@ func main() {
 		generateController(os.Args[2])
 	case "service":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: gonent service <name>")
+			fmt.Println("Usage: gonest service <name>")
 			return
 		}
 		generateService(os.Args[2])
 	case "middleware":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: gonent middleware <name>")
+			fmt.Println("Usage: gonest middleware <name>")
 			return
 		}
 		generateMiddleware(os.Args[2])
 	case "guard":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: gonent guard <name>")
+			fmt.Println("Usage: gonest guard <name>")
 			return
 		}
 		generateGuard(os.Args[2])
@@ -58,15 +58,15 @@ func printUsage() {
 Usage:
   gonest new <project>        Create a new project
   gonest controller <name>    Generate a controller
-  gonent service <name>       Generate a service
-  gonent middleware <name>    Generate a middleware
-  gonent guard <name>         Generate a guard
+  gonest service <name>       Generate a service
+  gonest middleware <name>    Generate a middleware
+  gonest guard <name>         Generate a guard
 
 Examples:
   gonest new myapp
   gonest controller user
-  gonent service auth
-  gonent middleware logging`)
+  gonest service auth
+  gonest middleware logging`)
 }
 
 func createProject(name string) {
@@ -77,6 +77,7 @@ func createProject(name string) {
 		name + "/internal/services",
 		name + "/internal/middleware",
 		name + "/internal/models",
+		name + "/wire",
 	}
 
 	for _, dir := range dirs {
@@ -87,14 +88,17 @@ func createProject(name string) {
 	}
 
 	writeFile(name+"/go.mod", goModTemplate, map[string]string{"Name": name})
-	writeFile(name+"/cmd/main.go", mainTemplate, nil)
+	writeFile(name+"/cmd/main.go", mainTemplate, map[string]string{"Name": name})
+	writeFile(name+"/wire/wire.go", wireTemplate, map[string]string{"Name": name})
 	writeFile(name+"/internal/controllers/app.controller.go", appControllerTemplate, nil)
 	writeFile(name+"/internal/middleware/logger.middleware.go", loggerMiddlewareTemplate, nil)
+	writeFile(name+"/internal/services/user.service.go", userServiceTemplate, nil)
 
 	fmt.Printf("\n✅ Project '%s' created successfully!\n\n", name)
 	fmt.Println("Next steps:")
 	fmt.Printf("  cd %s\n", name)
 	fmt.Println("  go mod tidy")
+	fmt.Println("  go generate ./wire/...")
 	fmt.Println("  go run cmd/main.go")
 }
 
@@ -202,16 +206,12 @@ func toPascalCase(s string) string {
 	return result
 }
 
-// ============================================================
-//                     Templates
-// ============================================================
-
 var goModTemplate = `module {{.Name}}
 
 go 1.22
 
 require (
-	github.com/goforj/wire v1.1.0
+	github.com/google/wire v0.6.0
 	github.com/linuxerlv/gonest v0.0.0
 )
 
@@ -229,14 +229,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/goforj/wire"
 	"github.com/linuxerlv/gonest"
-	"{{.Name}}/internal/controllers"
-	"{{.Name}}/internal/middleware"
+	"github.com/linuxerlv/gonest/core"
+	"{{.Name}}/wire"
 )
 
 func main() {
-	app := InitializeApp()
+	app := wire.InitializeApp()
 
 	go func() {
 		quit := make(chan os.Signal, 1)
@@ -254,26 +253,45 @@ func main() {
 		log.Fatal(err)
 	}
 }
+`
 
-func InitializeApp() *gonest.Application {
+var wireTemplate = `//go:build wireinject
+// +build wireinject
+
+package wire
+
+import (
+	"github.com/google/wire"
+	"github.com/linuxerlv/gonest"
+	"github.com/linuxerlv/gonest/core"
+	"{{.Name}}/internal/controllers"
+	"{{.Name}}/internal/middleware"
+	"{{.Name}}/internal/services"
+)
+
+func InitializeApp() *core.WebApplication {
 	wire.Build(
-		NewApp,
+		core.ProvideWebApplicationBuilder,
+		core.ProvideServiceCollection,
+		ProvideWebApplication,
 		controllers.NewAppController,
 		middleware.NewLoggerMiddleware,
+		services.NewUserService,
 	)
 	return nil
 }
 
-func NewApp(
+func ProvideWebApplication(
+	builder *core.WebApplicationBuilder,
 	appController *controllers.AppController,
 	loggerMiddleware gonest.Middleware,
-) *gonest.Application {
-	app := gonest.New()
+) *core.WebApplication {
+	app := builder.BuildWeb()
 
 	app.Use(loggerMiddleware)
-	app.Use(gonest.Recovery())
-	app.Use(gonest.SecurityHeaders(nil))
-	app.Controller(appController)
+
+	app.MapGet("/", appController.Index)
+	app.MapGet("/health", appController.Health)
 
 	return app
 }
@@ -291,11 +309,6 @@ type AppController struct{}
 
 func NewAppController() *AppController {
 	return &AppController{}
-}
-
-func (c *AppController) Routes(r gonest.Router) {
-	r.GET("/", c.Index)
-	r.GET("/health", c.Health)
 }
 
 func (c *AppController) Index(ctx gonest.Context) error {
@@ -331,6 +344,31 @@ func NewLoggerMiddleware() gonest.Middleware {
 }
 `
 
+var userServiceTemplate = `package services
+
+type UserService interface {
+	GetByID(id string) (any, error)
+	GetAll() ([]any, error)
+}
+
+type UserServiceImpl struct{}
+
+func NewUserService() UserService {
+	return &UserServiceImpl{}
+}
+
+func (s *UserServiceImpl) GetByID(id string) (any, error) {
+	return map[string]string{"id": id, "name": "User"}, nil
+}
+
+func (s *UserServiceImpl) GetAll() ([]any, error) {
+	return []any{
+		map[string]string{"id": "1", "name": "User 1"},
+		map[string]string{"id": "2", "name": "User 2"},
+	}, nil
+}
+`
+
 var controllerTemplate = `package controllers
 
 import (
@@ -343,14 +381,6 @@ type {{.Name}}Controller struct{}
 
 func New{{.Name}}Controller() *{{.Name}}Controller {
 	return &{{.Name}}Controller{}
-}
-
-func (c *{{.Name}}Controller) Routes(r gonest.Router) {
-	r.GET("/{{.name}}", c.List)
-	r.GET("/{{.name}}/:id", c.Get)
-	r.POST("/{{.name}}", c.Create)
-	r.PUT("/{{.name}}/:id", c.Update)
-	r.DELETE("/{{.name}}/:id", c.Delete)
 }
 
 func (c *{{.Name}}Controller) List(ctx gonest.Context) error {
@@ -401,6 +431,8 @@ func (c *{{.Name}}Controller) Delete(ctx gonest.Context) error {
 
 var serviceTemplate = `package services
 
+import "github.com/linuxerlv/gonest/core"
+
 type {{.Name}}Service interface {
 	FindAll() ([]any, error)
 	FindByID(id string) (any, error)
@@ -409,10 +441,12 @@ type {{.Name}}Service interface {
 	Delete(id string) error
 }
 
-type {{.Name}}ServiceImpl struct{}
+type {{.Name}}ServiceImpl struct {
+	services *core.ServiceCollection
+}
 
-func New{{.Name}}Service() {{.Name}}Service {
-	return &{{.Name}}ServiceImpl{}
+func New{{.Name}}Service(services *core.ServiceCollection) {{.Name}}Service {
+	return &{{.Name}}ServiceImpl{services: services}
 }
 
 func (s *{{.Name}}ServiceImpl) FindAll() ([]any, error) {

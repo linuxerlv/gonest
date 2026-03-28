@@ -29,7 +29,7 @@
 go get github.com/linuxerlv/gonest
 ```
 
-### 基础使用
+### 快速开始（ASP.NET Core 风格）
 
 ```go
 package main
@@ -37,18 +37,28 @@ package main
 import (
     "github.com/linuxerlv/gonest/core"
     "github.com/linuxerlv/gonest/core/abstract"
-    "github.com/linuxerlv/gonest/middleware/cors"
-    "github.com/linuxerlv/gonest/middleware/recovery"
+    "github.com/linuxerlv/gonest/extensions"
 )
 
 func main() {
-    // 方式一：快速创建（适合简单应用）
-    app := core.CreateApplication()
-    app.Use(recovery.New(nil))
-    app.Use(cors.New(nil))
-    app.GET("/hello", func(ctx abstract.ContextAbstract) error {
+    // 创建 WebApplication Builder（ASP.NET Core 风格）
+    builder := core.CreateBuilder()
+
+    // 添加服务到 DI 容器
+    builder.Services().AddSingleton(&MyService{})
+
+    // 构建应用
+    app := builder.BuildWeb()
+
+    // 使用中间件（扩展方法）
+    extensions.UseRecovery(app, nil)
+    extensions.UseCORS(app, nil)
+
+    // 注册路由
+    app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, map[string]string{"message": "Hello World"})
     })
+
     app.Run()
 }
 ```
@@ -62,34 +72,71 @@ import (
     "github.com/linuxerlv/gonest/core"
     "github.com/linuxerlv/gonest/core/abstract"
     "github.com/linuxerlv/gonest/config"
+    "github.com/linuxerlv/gonest/extensions"
 )
 
 func main() {
-    // 创建 Builder
+    // 创建 WebApplication Builder（ASP.NET Core 风格）
     builder := core.CreateBuilder()
-    
-    // 设置配置和环境变量（公开属性，直接访问）
-    builder.Config = config.NewKoanfConfig(".")
-    builder.Env.Set("APP_ENV", "production")
-    
-    // 注册服务到 DI 容器（Wire 注入友好）
-    builder.Services.AddSingleton(&MyService{})
-    builder.Services.AddScoped(func(s abstract.ServiceCollectionAbstract) *DbContext {
-        return &DbContext{DSN: builder.Env.Get("DATABASE_URL")}
+
+    // 配置配置和环境变量
+    cfg := config.NewKoanfConfig(".")
+    builder.UseConfig(cfg)
+    builder.Environment().Set("APP_ENV", "production")
+
+    // 注册服务到 DI 容器
+    builder.Services().AddSingleton(&MyService{})
+    builder.Services().AddScoped(func(s abstract.ServiceCollectionAbstract) *DbContext {
+        return &DbContext{DSN: builder.Environment().Get("DATABASE_URL")}
     })
-    
+
     // 构建应用
-    app := builder.Build().(*core.WebApplication)
-    
+    app := builder.BuildWeb()
+
     // 从 DI 容器获取服务
-    service := core.GetService[*MyService](app.Services)
-    
+    service := core.GetService[*MyService](app.Services())
+
+    // 使用中间件
+    extensions.UseRecovery(app, nil)
+    extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
+        AllowOrigins: []string{"https://example.com"},
+    })
+
     // 注册路由
     app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, map[string]string{"message": "Hello World"})
     })
-    
+
     app.Run()
+}
+```
+
+### 通用应用（非 Web 场景）
+
+```go
+package main
+
+import (
+    "github.com/linuxerlv/gonest/core"
+    "github.com/linuxerlv/gonest/core/abstract"
+)
+
+func main() {
+    // 创建通用 Application Builder（用于非 Web 场景）
+    builder := core.CreateApplicationBuilder()
+
+    // 添加服务
+    builder.Services().AddSingleton(&MyService{})
+    builder.Services().AddTransient(func(s abstract.ServiceCollectionAbstract) *Worker {
+        return &Worker{}
+    })
+
+    // 构建应用
+    app := builder.Build()
+
+    // 获取服务并运行业务逻辑
+    service := core.GetService[*MyService](app.Services())
+    service.DoWork()
 }
 ```
 
@@ -208,27 +255,26 @@ app := gonest.NewApplication()
 
 ---
 
-## API 速查
+## API 速查（ASP.NET Core 风格）
 
 ### 应用创建
 
 ```go
 import "github.com/linuxerlv/gonest/core"
 
-// 方式一：快速创建（适合简单应用）
-app := core.CreateApplication()
+// Web 应用（带 HTTP 服务器）
+builder := core.CreateBuilder()           // 创建 WebApplication Builder
+app := builder.BuildWeb()                 // 构建 WebApplication
+app.Run()                                 // 启动服务器
 
-// 方式二：Builder 模式（推荐，支持依赖注入）
-builder := core.CreateBuilder()
-builder.Config = cfg           // 设置配置
-builder.Env.Set("KEY", "val")  // 设置环境变量
-builder.Services.AddSingleton(&MyService{})  // 注册服务
-app := builder.Build().(*core.WebApplication)
+// 通用应用（非 Web 场景）
+builder := core.CreateApplicationBuilder() // 创建 Application Builder
+app := builder.Build()                     // 构建 Application
 
-// 访问公开属性
-cfg := app.Config
-env := app.Env
-services := app.Services
+// 访问服务
+services := builder.Services()             // 获取 ServiceCollection
+cfg := builder.Configuration()             // 获取 Configuration
+env := builder.Environment()               // 获取 Environment
 ```
 
 ### 路由注册
@@ -236,12 +282,7 @@ services := app.Services
 ```go
 import "github.com/linuxerlv/gonest/core/abstract"
 
-// Application 方式
-app.GET("/users", func(ctx abstract.ContextAbstract) error {
-    return ctx.JSON(200, users)
-})
-
-// WebApplication 方式（MapXXX 方法）
+// MapXXX 方法（ASP.NET Core 风格）
 app.MapGet("/users", func(ctx abstract.ContextAbstract) error {
     return ctx.JSON(200, users)
 })
@@ -252,57 +293,75 @@ app.MapPost("/users", func(ctx abstract.ContextAbstract) error {
     return ctx.JSON(201, user)
 })
 
+app.MapPut("/users/:id", func(ctx abstract.ContextAbstract) error {
+    id := ctx.Param("id")
+    return ctx.JSON(200, map[string]string{"id": id})
+})
+
+app.MapDelete("/users/:id", func(ctx abstract.ContextAbstract) error {
+    return ctx.JSON(200, nil)
+})
+
 // 路由组
 api := app.Group("/api/v1")
-api.GET("/users", listUsers)
+api.MapGet("/users", listUsers)
 ```
 
-### 中间件
+### 中间件（扩展方法）
 
 ```go
-import (
-    "github.com/linuxerlv/gonest/middleware/cors"
-    "github.com/linuxerlv/gonest/middleware/recovery"
-    "github.com/linuxerlv/gonest/middleware/ratelimit"
-)
+import "github.com/linuxerlv/gonest/extensions"
 
-app.Use(recovery.New(nil))
-app.Use(cors.New(&cors.Config{
+// UseXXX 扩展方法
+extensions.UseRecovery(app, nil)
+extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
     AllowOrigins: []string{"https://example.com"},
-}))
-app.Use(ratelimit.New(&ratelimit.Config{
+})
+extensions.UseRateLimit(app, &extensions.RateLimitMiddlewareOptions{
     Limit:  100,
-    Window: time.Minute,
-}))
+    Window: 60, // 秒
+})
+extensions.UseGzip(app, nil)
+extensions.UseSecurityHeaders(app, nil)
+extensions.UseRequestID(app, nil)
+extensions.UseTimeout(app, &extensions.TimeoutMiddlewareOptions{
+    Timeout: 30, // 秒
+})
+
+// 或者使用原始中间件
+app.Use(middleware)
 ```
 
 ### 依赖注入
 
 ```go
-// 注册
-builder.Services.AddSingleton(&MyService{})
-builder.Services.AddScoped(func(s abstract.ServiceCollectionAbstract) *DbContext {
+// 注册服务
+builder.Services().AddSingleton(&MyService{})
+builder.Services().AddScoped(func(s abstract.ServiceCollectionAbstract) *DbContext {
     return &DbContext{}
 })
+builder.Services().AddTransient(func(s abstract.ServiceCollectionAbstract) *CacheService {
+    return &CacheService{}
+})
 
-// 获取
-service := core.GetService[*MyService](app.Services)
+// 从应用获取服务
+service := core.GetService[*MyService](app.Services())
 ```
 
 ### 环境变量
 
 ```go
 // 读取环境变量
-dbUrl := builder.Env.Get("DATABASE_URL")
-port := builder.Env.GetOrDefault("PORT", "8080")
+dbUrl := builder.Environment().Get("DATABASE_URL")
+port := builder.Environment().GetOrDefault("PORT", "8080")
 
 // 检查存在
-if builder.Env.Has("DEBUG") {
+if builder.Environment().Has("DEBUG") {
     // ...
 }
 
 // 获取所有
-allEnv := builder.Env.All()
+allEnv := builder.Environment().All()
 ```
 
 ### 配置文件
@@ -335,9 +394,9 @@ type ServerConfig struct {
 var serverCfg ServerConfig
 cfg.Unmarshal("server", &serverCfg)
 
-// 设置到 Builder
+// 设置到 Builder（使用 UseConfig 方法）
 builder := core.CreateBuilder()
-builder.Config = cfg
+builder.UseConfig(cfg)
 ```
 
 ---

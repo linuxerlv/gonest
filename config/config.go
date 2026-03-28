@@ -6,8 +6,7 @@ import (
 	"github.com/linuxerlv/gonest/core/abstract"
 )
 
-// 确保 KoanfConfig 实现了 abstract.ConfigAbstract 接口
-var _ abstract.ConfigAbstract = (*KoanfConfig)(nil)
+var _ abstract.Config = (*KoanfConfig)(nil)
 
 type Config interface {
 	Get(key string) any

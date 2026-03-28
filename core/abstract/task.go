@@ -3,11 +3,11 @@ package abstract
 import "context"
 import "time"
 
-// JobHandlerAbstract 任务处理函数类型
-type JobHandlerAbstract func(ctx context.Context) error
+// JobHandler 任务处理函数类型
+type JobHandler func(ctx context.Context) error
 
-// JobInfoAbstract 任务信息接口
-type JobInfoAbstract interface {
+// JobInfo 任务信息接口
+type JobInfo interface {
 	Name() string
 	Schedule() string
 	NextRun() time.Time
@@ -17,22 +17,22 @@ type JobInfoAbstract interface {
 	ErrorCount() int64
 }
 
-// CronSchedulerAbstract 定时任务调度器接口
-type CronSchedulerAbstract interface {
-	AddJob(cronExpr string, name string, handler JobHandlerAbstract) error
-	AddIntervalJob(interval time.Duration, name string, handler JobHandlerAbstract) error
+// CronScheduler 定时任务调度器接口
+type CronScheduler interface {
+	AddJob(cronExpr string, name string, handler JobHandler) error
+	AddIntervalJob(interval time.Duration, name string, handler JobHandler) error
 	RemoveJob(name string) error
 	RunJob(name string) error
 	Start() error
 	Stop(ctx context.Context) error
-	Jobs() []JobInfoAbstract
+	Jobs() []JobInfo
 }
 
-// TaskHandlerAbstract 后台任务处理函数类型
-type TaskHandlerAbstract func(ctx context.Context, task *QueueTaskAbstract) error
+// TaskHandler 后台任务处理函数类型
+type TaskHandler func(ctx context.Context, task *QueueTask) error
 
-// QueueTaskAbstract 队列任务接口
-type QueueTaskAbstract interface {
+// QueueTask 队列任务接口
+type QueueTask interface {
 	ID() string
 	Type() string
 	Payload() []byte
@@ -42,8 +42,8 @@ type QueueTaskAbstract interface {
 	CreatedAt() time.Time
 }
 
-// QueueStatsAbstract 队列统计接口
-type QueueStatsAbstract interface {
+// QueueStats 队列统计接口
+type QueueStats interface {
 	Name() string
 	Pending() int64
 	Active() int64
@@ -54,46 +54,46 @@ type QueueStatsAbstract interface {
 	ProcessedAt() time.Time
 }
 
-// TaskQueueAbstract 后台任务队列接口
-type TaskQueueAbstract interface {
-	Enqueue(task QueueTaskAbstract, opts ...TaskOptionAbstract) error
-	EnqueueDelayed(task QueueTaskAbstract, delay time.Duration, opts ...TaskOptionAbstract) error
-	EnqueueAt(task QueueTaskAbstract, at time.Time, opts ...TaskOptionAbstract) error
-	RegisterHandler(taskType string, handler TaskHandlerAbstract) error
+// TaskQueue 后台任务队列接口
+type TaskQueue interface {
+	Enqueue(task QueueTask, opts ...TaskOption) error
+	EnqueueDelayed(task QueueTask, delay time.Duration, opts ...TaskOption) error
+	EnqueueAt(task QueueTask, at time.Time, opts ...TaskOption) error
+	RegisterHandler(taskType string, handler TaskHandler) error
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
-	Stats() QueueStatsAbstract
+	Stats() QueueStats
 	Name() string
 }
 
-// TaskOptionAbstract 任务选项函数类型
-type TaskOptionAbstract func(*TaskOptionsAbstract)
+// TaskOption 任务选项函数类型
+type TaskOption func(*TaskOptions)
 
-// TaskOptionsAbstract 任务选项
-type TaskOptionsAbstract struct {
+// TaskOptions 任务选项
+type TaskOptions struct {
 	MaxRetry  int
 	Timeout   time.Duration
 	Unique    bool
 	Retention time.Duration
 }
 
-// WithMaxRetryAbstract 设置最大重试次数
-func WithMaxRetryAbstract(n int) TaskOptionAbstract {
-	return func(o *TaskOptionsAbstract) { o.MaxRetry = n }
+// WithMaxRetry 设置最大重试次数
+func WithMaxRetry(n int) TaskOption {
+	return func(o *TaskOptions) { o.MaxRetry = n }
 }
 
-// WithTimeoutAbstract 设置超时时间
-func WithTimeoutAbstract(d time.Duration) TaskOptionAbstract {
-	return func(o *TaskOptionsAbstract) { o.Timeout = d }
+// WithTimeout 设置超时时间
+func WithTimeout(d time.Duration) TaskOption {
+	return func(o *TaskOptions) { o.Timeout = d }
 }
 
-// WithUniqueAbstract 设置唯一任务
-func WithUniqueAbstract() TaskOptionAbstract {
-	return func(o *TaskOptionsAbstract) { o.Unique = true }
+// WithUnique 设置唯一任务
+func WithUnique() TaskOption {
+	return func(o *TaskOptions) { o.Unique = true }
 }
 
-// QueueConfigAbstract 队列配置
-type QueueConfigAbstract struct {
+// QueueConfig 队列配置
+type QueueConfig struct {
 	Workers     int
 	MaxRetry    int
 	Concurrency int
@@ -101,21 +101,21 @@ type QueueConfigAbstract struct {
 	Queues      map[string]int
 }
 
-// SchedulerConfigAbstract 调度器配置
-type SchedulerConfigAbstract struct {
+// SchedulerConfig 调度器配置
+type SchedulerConfig struct {
 	Timezone    string
 	Concurrency int
 	Timeout     time.Duration
 }
 
-// QueueFactoryAbstract 队列工厂接口
-type QueueFactoryAbstract interface {
-	CreateQueue(name string, opts QueueConfigAbstract) (TaskQueueAbstract, error)
-	CreateScheduler(opts SchedulerConfigAbstract) (CronSchedulerAbstract, error)
+// QueueFactory 队列工厂接口
+type QueueFactory interface {
+	CreateQueue(name string, opts QueueConfig) (TaskQueue, error)
+	CreateScheduler(opts SchedulerConfig) (CronScheduler, error)
 }
 
-// TaskResultAbstract 任务结果接口
-type TaskResultAbstract interface {
+// TaskResult 任务结果接口
+type TaskResult interface {
 	TaskID() string
 	Status() string
 	Result() []byte
@@ -123,9 +123,9 @@ type TaskResultAbstract interface {
 	At() time.Time
 }
 
-// ResultStoreAbstract 结果存储接口
-type ResultStoreAbstract interface {
-	Set(ctx context.Context, taskID string, result TaskResultAbstract, ttl time.Duration) error
-	Get(ctx context.Context, taskID string) (TaskResultAbstract, error)
+// ResultStore 结果存储接口
+type ResultStore interface {
+	Set(ctx context.Context, taskID string, result TaskResult, ttl time.Duration) error
+	Get(ctx context.Context, taskID string) (TaskResult, error)
 	Delete(ctx context.Context, taskID string) error
 }

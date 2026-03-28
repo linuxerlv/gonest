@@ -151,7 +151,7 @@ func TestCasbinMiddleware_Handle(t *testing.T) {
 			}
 
 			if tt.expectError {
-				if httpErr, ok := err.(*gonest.HttpException); ok {
+				if httpErr, ok := err.(*gonest.HttpError); ok {
 					if httpErr.Status() != tt.expectStatus {
 						t.Errorf("Expected error status %d, got %d", tt.expectStatus, httpErr.Status())
 					}
@@ -1186,15 +1186,15 @@ func TestCasbinMiddleware_Handle_TableDriven(t *testing.T) {
 				if err == nil {
 					t.Fatalf("Expected error for %d status, got nil", sc.expectedCode)
 				}
-				_, ok := err.(*gonest.HttpException)
+				_, ok := err.(*gonest.HttpError)
 				if !ok {
-					t.Fatalf("Expected HttpException, got %T", err)
+					t.Fatalf("Expected HttpError, got %T", err)
 				}
 				return
 			}
 
 			if err != nil {
-				_, ok := err.(*gonest.HttpException)
+				_, ok := err.(*gonest.HttpError)
 				if !ok {
 					t.Fatalf("Unexpected error type: %T", err)
 				}

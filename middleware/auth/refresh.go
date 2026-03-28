@@ -63,7 +63,7 @@ func (m *RefreshMiddleware) generateNewToken(claims *Claims) (*TokenPair, error)
 	)
 }
 
-func (m *RefreshMiddleware) Handle(ctx abstract.ContextAbstract, next func() error) error {
+func (m *RefreshMiddleware) Handle(ctx abstract.Context, next func() error) error {
 	err := next()
 
 	if !m.config.Enabled {
@@ -88,8 +88,8 @@ func (m *RefreshMiddleware) Handle(ctx abstract.ContextAbstract, next func() err
 	return nil
 }
 
-func (m *RefreshMiddleware) WithRefreshEndpoint(path string) abstract.RouteHandlerAbstract {
-	return func(ctx abstract.ContextAbstract) error {
+func (m *RefreshMiddleware) WithRefreshEndpoint(path string) abstract.RouteHandler {
+	return func(ctx abstract.Context) error {
 		refreshToken := ctx.Header("X-Refresh-Token")
 		if refreshToken == "" {
 			return abstract.Unauthorized("missing refresh token")

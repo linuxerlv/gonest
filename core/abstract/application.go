@@ -1,39 +1,23 @@
 package abstract
 
 import (
-	"context"
-	"net/http"
 	"time"
 )
 
-// ApplicationAbstract 应用接口
-type ApplicationAbstract interface {
-	RouterAbstract
-	Use(middleware MiddlewareAbstract) ApplicationAbstract
-	UseGlobalGuards(guards ...GuardAbstract) ApplicationAbstract
-	UseGlobalInterceptors(interceptors ...InterceptorAbstract) ApplicationAbstract
-	UseGlobalPipes(pipes ...PipeAbstract) ApplicationAbstract
-	UseGlobalFilters(filters ...ExceptionFilterAbstract) ApplicationAbstract
-	Controller(controller ControllerAbstract) ApplicationAbstract
-	Listen(addr string) error
-	Shutdown(ctx context.Context) error
-	ServeHTTP(w http.ResponseWriter, r *http.Request)
+// MiddlewareApp 中间件应用接口
+type MiddlewareApp interface {
+	UseCORS(cfg *CORSConfig) Application
+	UseRecovery() Application
+	UseRequestID(headerName string) Application
+	UseRateLimit(limit int, window time.Duration) Application
+	UseGzip(level int) Application
+	UseSecurity(cfg *SecurityConfig) Application
+	UseTimeout(timeout time.Duration) Application
+	UseScope() Application
 }
 
-// MiddlewareAppAbstract 中间件应用接口
-type MiddlewareAppAbstract interface {
-	UseCORS(cfg *CORSConfigAbstract) ApplicationAbstract
-	UseRecovery() ApplicationAbstract
-	UseRequestID(headerName string) ApplicationAbstract
-	UseRateLimit(limit int, window time.Duration) ApplicationAbstract
-	UseGzip(level int) ApplicationAbstract
-	UseSecurity(cfg *SecurityConfigAbstract) ApplicationAbstract
-	UseTimeout(timeout time.Duration) ApplicationAbstract
-	UseScope() ApplicationAbstract
-}
-
-// CORSConfigAbstract CORS配置
-type CORSConfigAbstract struct {
+// CORSConfig CORS配置
+type CORSConfig struct {
 	AllowOrigins     []string
 	AllowMethods     []string
 	AllowHeaders     []string
@@ -42,8 +26,8 @@ type CORSConfigAbstract struct {
 	MaxAge           int
 }
 
-// SecurityConfigAbstract 安全配置
-type SecurityConfigAbstract struct {
+// SecurityConfig 安全配置
+type SecurityConfig struct {
 	XSSProtection         bool
 	ContentTypeNosniff    bool
 	XFrameOptions         string
@@ -54,8 +38,8 @@ type SecurityConfigAbstract struct {
 	PermissionsPolicy     string
 }
 
-// LoggerMiddlewareConfigAbstract 日志中间件配置
-type LoggerMiddlewareConfigAbstract struct {
+// LoggerMiddlewareConfig 日志中间件配置
+type LoggerMiddlewareConfig struct {
 	SkipPaths []string
-	Formatter func(ctx ContextAbstract, latency time.Duration) string
+	Formatter func(ctx Context, latency time.Duration) string
 }

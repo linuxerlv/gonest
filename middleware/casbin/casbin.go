@@ -16,23 +16,23 @@ type Config struct {
 	Adapter    persist.Adapter
 	Enforcer   *casbin.Enforcer
 	SkipPaths  []string
-	SubGetter  func(ctx abstract.ContextAbstract) string
-	ObjGetter  func(ctx abstract.ContextAbstract) string
-	ActGetter  func(ctx abstract.ContextAbstract) string
+	SubGetter  func(ctx abstract.Context) string
+	ObjGetter  func(ctx abstract.Context) string
+	ActGetter  func(ctx abstract.Context) string
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		SubGetter: func(ctx abstract.ContextAbstract) string {
+		SubGetter: func(ctx abstract.Context) string {
 			if userID := ctx.Get("user_id"); userID != nil {
 				return fmt.Sprintf("%v", userID)
 			}
 			return ""
 		},
-		ObjGetter: func(ctx abstract.ContextAbstract) string {
+		ObjGetter: func(ctx abstract.Context) string {
 			return ctx.Path()
 		},
-		ActGetter: func(ctx abstract.ContextAbstract) string {
+		ActGetter: func(ctx abstract.Context) string {
 			return ctx.Method()
 		},
 	}
@@ -105,7 +105,7 @@ func NewWithEnforcer(enforcer *casbin.Enforcer) *CasbinMiddleware {
 	}
 }
 
-func (m *CasbinMiddleware) Handle(ctx abstract.ContextAbstract, next func() error) error {
+func (m *CasbinMiddleware) Handle(ctx abstract.Context, next func() error) error {
 	if m.shouldSkip(ctx) {
 		return next()
 	}
@@ -130,20 +130,20 @@ func (m *CasbinMiddleware) Handle(ctx abstract.ContextAbstract, next func() erro
 	return next()
 }
 
-func (m *CasbinMiddleware) shouldSkip(ctx abstract.ContextAbstract) bool {
+func (m *CasbinMiddleware) shouldSkip(ctx abstract.Context) bool {
 	path := ctx.Path()
 	return m.skipPaths[path]
 }
 
-func (m *CasbinMiddleware) AsMiddleware() abstract.MiddlewareAbstract {
-	return abstract.MiddlewareFuncAbstract(m.Handle)
+func (m *CasbinMiddleware) AsMiddleware() abstract.Middleware {
+	return abstract.MiddlewareFunc(m.Handle)
 }
 
 func (m *CasbinMiddleware) Enforce(sub, obj, act string) (bool, error) {
 	return m.enforcer.Enforce(sub, obj, act)
 }
 
-func (m *CasbinMiddleware) EnforceWithContext(ctx abstract.ContextAbstract) (bool, error) {
+func (m *CasbinMiddleware) EnforceWithContext(ctx abstract.Context) (bool, error) {
 	sub := m.config.SubGetter(ctx)
 	obj := m.config.ObjGetter(ctx)
 	act := m.config.ActGetter(ctx)
@@ -235,12 +235,12 @@ func NewMemoryEnforcer() (*casbin.Enforcer, error) {
 	return casbin.NewEnforcer(m)
 }
 
-func CheckPermission(ctx abstract.ContextAbstract, enforcer *casbin.Enforcer, sub, obj, act string) bool {
+func CheckPermission(ctx abstract.Context, enforcer *casbin.Enforcer, sub, obj, act string) bool {
 	ok, err := enforcer.Enforce(sub, obj, act)
 	return err == nil && ok
 }
 
-func CheckRole(ctx abstract.ContextAbstract, enforcer *casbin.Enforcer, user, role string) bool {
+func CheckRole(ctx abstract.Context, enforcer *casbin.Enforcer, user, role string) bool {
 	ok, err := enforcer.HasRoleForUser(user, role)
 	return err == nil && ok
 }

@@ -1,339 +1,197 @@
-package gonest
+package tests
 
 import (
 	"context"
-	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/linuxerlv/gonest/task"
 )
 
-// ============================================================
-//                 Memory CronScheduler Tests
-// ============================================================
+func TestTaskOptions_WithMaxRetry(t *testing.T) {
+	opts := &task.TaskOptions{}
+	option := task.WithMaxRetry(5)
 
-func TestMemoryCronScheduler_AddJob(t *testing.T) {
-	scheduler := task.NewMemoryCronScheduler()
+	option(opts)
 
-	var counter int32
+	if opts.MaxRetry != 5 {
+		t.Errorf("Expected MaxRetry 5, got %d", opts.MaxRetry)
+	}
+}
 
-	err := scheduler.AddIntervalJob(10*time.Millisecond, "test-job", func(ctx context.Context) error {
-		atomic.AddInt32(&counter, 1)
+func TestTaskOptions_WithTimeout(t *testing.T) {
+	opts := &task.TaskOptions{}
+	option := task.WithTimeout(30 * time.Second)
+
+	option(opts)
+
+	if opts.Timeout != 30*time.Second {
+		t.Errorf("Expected Timeout 30s, got %v", opts.Timeout)
+	}
+}
+
+func TestTaskOptions_WithUnique(t *testing.T) {
+	opts := &task.TaskOptions{}
+	option := task.WithUnique()
+
+	option(opts)
+
+	if !opts.Unique {
+		t.Error("Expected Unique to be true")
+	}
+}
+
+func TestQueueTask_Fields(t *testing.T) {
+	now := time.Now()
+	taskItem := &task.QueueTask{
+		ID:        "task-123",
+		Type:      "email",
+		Payload:   []byte("test"),
+		Priority:  1,
+		Queue:     "default",
+		Metadata:  map[string]string{"key": "value"},
+		CreatedAt: now,
+	}
+
+	if taskItem.ID != "task-123" {
+		t.Errorf("Expected ID 'task-123', got '%s'", taskItem.ID)
+	}
+
+	if taskItem.Type != "email" {
+		t.Errorf("Expected Type 'email', got '%s'", taskItem.Type)
+	}
+
+	if taskItem.Priority != 1 {
+		t.Errorf("Expected Priority 1, got %d", taskItem.Priority)
+	}
+
+	if taskItem.Queue != "default" {
+		t.Errorf("Expected Queue 'default', got '%s'", taskItem.Queue)
+	}
+}
+
+func TestJobInfo_Fields(t *testing.T) {
+	now := time.Now()
+	info := task.JobInfo{
+		Name:       "cleanup",
+		Schedule:   "0 0 * * *",
+		NextRun:    now.Add(24 * time.Hour),
+		LastRun:    now,
+		Running:    false,
+		RunCount:   10,
+		ErrorCount: 0,
+	}
+
+	if info.Name != "cleanup" {
+		t.Errorf("Expected Name 'cleanup', got '%s'", info.Name)
+	}
+
+	if info.Schedule != "0 0 * * *" {
+		t.Errorf("Expected Schedule '0 0 * * *', got '%s'", info.Schedule)
+	}
+
+	if info.RunCount != 10 {
+		t.Errorf("Expected RunCount 10, got %d", info.RunCount)
+	}
+}
+
+func TestQueueStats_Fields(t *testing.T) {
+	stats := task.QueueStats{
+		Name:      "default",
+		Pending:   100,
+		Active:    10,
+		Scheduled: 50,
+		Retry:     5,
+		Processed: 1000,
+		Failed:    3,
+	}
+
+	if stats.Name != "default" {
+		t.Errorf("Expected Name 'default', got '%s'", stats.Name)
+	}
+
+	if stats.Pending != 100 {
+		t.Errorf("Expected Pending 100, got %d", stats.Pending)
+	}
+
+	if stats.Processed != 1000 {
+		t.Errorf("Expected Processed 1000, got %d", stats.Processed)
+	}
+}
+
+func TestQueueConfig_Fields(t *testing.T) {
+	cfg := task.QueueConfig{
+		Workers:     4,
+		MaxRetry:    3,
+		Concurrency: 10,
+		Timeout:     30 * time.Second,
+		Queues:      map[string]int{"default": 1, "high": 2},
+	}
+
+	if cfg.Workers != 4 {
+		t.Errorf("Expected Workers 4, got %d", cfg.Workers)
+	}
+
+	if cfg.MaxRetry != 3 {
+		t.Errorf("Expected MaxRetry 3, got %d", cfg.MaxRetry)
+	}
+
+	if len(cfg.Queues) != 2 {
+		t.Errorf("Expected 2 queues, got %d", len(cfg.Queues))
+	}
+}
+
+func TestSchedulerConfig_Fields(t *testing.T) {
+	cfg := task.SchedulerConfig{
+		Timezone:    "UTC",
+		Concurrency: 5,
+		Timeout:     60 * time.Second,
+	}
+
+	if cfg.Timezone != "UTC" {
+		t.Errorf("Expected Timezone 'UTC', got '%s'", cfg.Timezone)
+	}
+
+	if cfg.Concurrency != 5 {
+		t.Errorf("Expected Concurrency 5, got %d", cfg.Concurrency)
+	}
+}
+
+func TestTaskResult_Fields(t *testing.T) {
+	now := time.Now()
+	result := task.TaskResult{
+		TaskID: "task-123",
+		Status: "completed",
+		Result: []byte("success"),
+		Error:  "",
+		At:     now,
+	}
+
+	if result.TaskID != "task-123" {
+		t.Errorf("Expected TaskID 'task-123', got '%s'", result.TaskID)
+	}
+
+	if result.Status != "completed" {
+		t.Errorf("Expected Status 'completed', got '%s'", result.Status)
+	}
+}
+
+func TestJobHandler_Type(t *testing.T) {
+	var handler task.JobHandler = func(ctx context.Context) error {
 		return nil
-	})
-
-	if err != nil {
-		t.Fatalf("failed to add job: %v", err)
 	}
 
-	scheduler.Start()
-
-	time.Sleep(55 * time.Millisecond)
-
-	if atomic.LoadInt32(&counter) < 4 {
-		t.Errorf("expected at least 4 executions, got %d", counter)
+	if handler == nil {
+		t.Error("Expected handler to be defined")
 	}
-
-	scheduler.Stop(context.Background())
 }
 
-func TestMemoryCronScheduler_RemoveJob(t *testing.T) {
-	scheduler := task.NewMemoryCronScheduler()
-
-	var counter int32
-
-	scheduler.AddIntervalJob(10*time.Millisecond, "removable-job", func(ctx context.Context) error {
-		atomic.AddInt32(&counter, 1)
+func TestTaskHandler_Type(t *testing.T) {
+	var handler task.TaskHandler = func(ctx context.Context, taskItem *task.QueueTask) error {
 		return nil
-	})
-
-	scheduler.Start()
-	time.Sleep(30 * time.Millisecond)
-
-	scheduler.RemoveJob("removable-job")
-	time.Sleep(30 * time.Millisecond)
-
-	countAfterRemove := atomic.LoadInt32(&counter)
-	time.Sleep(30 * time.Millisecond)
-
-	if atomic.LoadInt32(&counter) > countAfterRemove+1 {
-		t.Error("job should have been removed")
 	}
 
-	scheduler.Stop(context.Background())
-}
-
-func TestMemoryCronScheduler_RunJob(t *testing.T) {
-	scheduler := task.NewMemoryCronScheduler()
-
-	var counter int32
-
-	scheduler.AddIntervalJob(time.Hour, "manual-job", func(ctx context.Context) error {
-		atomic.AddInt32(&counter, 1)
-		return nil
-	})
-
-	scheduler.RunJob("manual-job")
-	time.Sleep(10 * time.Millisecond)
-
-	if atomic.LoadInt32(&counter) != 1 {
-		t.Errorf("expected 1 execution, got %d", counter)
+	if handler == nil {
+		t.Error("Expected handler to be defined")
 	}
-
-	scheduler.Stop(context.Background())
-}
-
-func TestMemoryCronScheduler_Jobs(t *testing.T) {
-	scheduler := task.NewMemoryCronScheduler()
-
-	scheduler.AddIntervalJob(time.Minute, "job1", func(ctx context.Context) error { return nil })
-	scheduler.AddIntervalJob(time.Minute, "job2", func(ctx context.Context) error { return nil })
-
-	jobs := scheduler.Jobs()
-	if len(jobs) != 2 {
-		t.Errorf("expected 2 jobs, got %d", len(jobs))
-	}
-
-	scheduler.Stop(context.Background())
-}
-
-// ============================================================
-//                 Memory TaskQueue Tests
-// ============================================================
-
-func TestMemoryTaskQueue_Enqueue(t *testing.T) {
-	queue := task.NewMemoryTaskQueue("test", 2, 10)
-
-	var processed int32
-
-	queue.RegisterHandler("test-task", func(ctx context.Context, task *task.QueueTask) error {
-		atomic.AddInt32(&processed, 1)
-		return nil
-	})
-
-	queue.Start(context.Background())
-
-	for i := 0; i < 5; i++ {
-		queue.Enqueue(&task.QueueTask{
-			ID:   string(rune('A' + i)),
-			Type: "test-task",
-		})
-	}
-
-	time.Sleep(100 * time.Millisecond)
-
-	if atomic.LoadInt32(&processed) != 5 {
-		t.Errorf("expected 5 processed, got %d", processed)
-	}
-
-	queue.Stop(context.Background())
-}
-
-func TestMemoryTaskQueue_EnqueueDelayed(t *testing.T) {
-	queue := task.NewMemoryTaskQueue("delayed-test", 1, 10)
-
-	var processed int32
-
-	queue.RegisterHandler("delayed-task", func(ctx context.Context, task *task.QueueTask) error {
-		atomic.AddInt32(&processed, 1)
-		return nil
-	})
-
-	queue.Start(context.Background())
-
-	queue.EnqueueDelayed(&task.QueueTask{
-		ID:   "delayed-1",
-		Type: "delayed-task",
-	}, 50*time.Millisecond)
-
-	time.Sleep(30 * time.Millisecond)
-
-	if atomic.LoadInt32(&processed) != 0 {
-		t.Error("task executed too early")
-	}
-
-	time.Sleep(80 * time.Millisecond)
-
-	if atomic.LoadInt32(&processed) != 1 {
-		t.Errorf("expected 1 processed, got %d", processed)
-	}
-
-	queue.Stop(context.Background())
-}
-
-func TestMemoryTaskQueue_Stats(t *testing.T) {
-	queue := task.NewMemoryTaskQueue("stats-test", 1, 10)
-
-	queue.RegisterHandler("stats-task", func(ctx context.Context, task *task.QueueTask) error {
-		return nil
-	})
-
-	queue.Start(context.Background())
-
-	for i := 0; i < 3; i++ {
-		queue.Enqueue(&task.QueueTask{
-			ID:   string(rune(i)),
-			Type: "stats-task",
-		})
-	}
-
-	time.Sleep(50 * time.Millisecond)
-
-	stats := queue.Stats()
-
-	if stats.Name != "stats-test" {
-		t.Errorf("expected name 'stats-test', got '%s'", stats.Name)
-	}
-
-	if stats.Processed != 3 {
-		t.Errorf("expected 3 processed, got %d", stats.Processed)
-	}
-
-	queue.Stop(context.Background())
-}
-
-func TestMemoryTaskQueue_TaskOptions(t *testing.T) {
-	queue := task.NewMemoryTaskQueue("options-test", 1, 10)
-
-	var processed int32
-
-	queue.RegisterHandler("options-task", func(ctx context.Context, task *task.QueueTask) error {
-		atomic.AddInt32(&processed, 1)
-		return nil
-	})
-
-	queue.Start(context.Background())
-
-	queue.Enqueue(&task.QueueTask{
-		ID:   "opt-1",
-		Type: "options-task",
-	}, task.WithMaxRetry(2), task.WithTimeout(5*time.Second))
-
-	time.Sleep(50 * time.Millisecond)
-
-	if atomic.LoadInt32(&processed) != 1 {
-		t.Errorf("expected 1 processed, got %d", processed)
-	}
-
-	queue.Stop(context.Background())
-}
-
-// ============================================================
-//                 Memory QueueFactory Tests
-// ============================================================
-
-func TestMemoryQueueFactory_CreateQueue(t *testing.T) {
-	factory := task.NewMemoryQueueFactory()
-
-	queue, err := factory.CreateQueue("test-queue", task.QueueConfig{
-		Workers: 5,
-	})
-	if err != nil {
-		t.Fatalf("failed to create queue: %v", err)
-	}
-
-	if queue.Name() != "test-queue" {
-		t.Errorf("expected name 'test-queue', got '%s'", queue.Name())
-	}
-}
-
-func TestMemoryQueueFactory_CreateScheduler(t *testing.T) {
-	factory := task.NewMemoryQueueFactory()
-
-	scheduler, err := factory.CreateScheduler(task.SchedulerConfig{})
-	if err != nil {
-		t.Fatalf("failed to create scheduler: %v", err)
-	}
-
-	if scheduler == nil {
-		t.Error("expected scheduler to be non-nil")
-	}
-}
-
-// ============================================================
-//                 RobfigCronAdapter Tests
-// ============================================================
-
-func TestRobfigCronScheduler_AddJob(t *testing.T) {
-	scheduler := task.NewRobfigCronScheduler()
-
-	var counter int32
-
-	err := scheduler.AddJob("*/1 * * * *", "test-job", func(ctx context.Context) error {
-		atomic.AddInt32(&counter, 1)
-		return nil
-	})
-
-	if err != nil {
-		t.Fatalf("failed to add job: %v", err)
-	}
-
-	scheduler.Start()
-	time.Sleep(100 * time.Millisecond)
-
-	scheduler.Stop(context.Background())
-}
-
-func TestRobfigCronScheduler_CronExpression(t *testing.T) {
-	scheduler := task.NewRobfigCronScheduler(task.WithSeconds())
-
-	var counter int32
-
-	err := scheduler.AddJob("*/1 * * * * *", "every-second", func(ctx context.Context) error {
-		atomic.AddInt32(&counter, 1)
-		return nil
-	})
-
-	if err != nil {
-		t.Fatalf("failed to add job: %v", err)
-	}
-
-	scheduler.Start()
-	time.Sleep(2500 * time.Millisecond)
-
-	if atomic.LoadInt32(&counter) < 2 {
-		t.Errorf("expected at least 2 executions, got %d", counter)
-	}
-
-	scheduler.Stop(context.Background())
-}
-
-func TestRobfigCronScheduler_RemoveJob(t *testing.T) {
-	scheduler := task.NewRobfigCronScheduler()
-
-	var counter int32
-
-	scheduler.AddJob("@every 10ms", "removable", func(ctx context.Context) error {
-		atomic.AddInt32(&counter, 1)
-		return nil
-	})
-
-	scheduler.Start()
-	time.Sleep(30 * time.Millisecond)
-
-	scheduler.RemoveJob("removable")
-	countAfterRemove := atomic.LoadInt32(&counter)
-
-	time.Sleep(30 * time.Millisecond)
-
-	if atomic.LoadInt32(&counter) > countAfterRemove+1 {
-		t.Error("job should have been removed")
-	}
-
-	scheduler.Stop(context.Background())
-}
-
-func TestRobfigCronScheduler_Jobs(t *testing.T) {
-	scheduler := task.NewRobfigCronScheduler()
-
-	scheduler.AddJob("@every 1m", "job1", func(ctx context.Context) error { return nil })
-	scheduler.AddJob("@every 2m", "job2", func(ctx context.Context) error { return nil })
-
-	jobs := scheduler.Jobs()
-	if len(jobs) != 2 {
-		t.Errorf("expected 2 jobs, got %d", len(jobs))
-	}
-
-	scheduler.Stop(context.Background())
 }

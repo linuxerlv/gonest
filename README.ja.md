@@ -29,7 +29,7 @@
 go get github.com/linuxerlv/gonest
 ```
 
-### クイックスタート
+### クイックスタート（ASP.NET Core スタイル）
 
 ```go
 package main
@@ -37,18 +37,28 @@ package main
 import (
     "github.com/linuxerlv/gonest/core"
     "github.com/linuxerlv/gonest/core/abstract"
-    "github.com/linuxerlv/gonest/middleware/cors"
-    "github.com/linuxerlv/gonest/middleware/recovery"
+    "github.com/linuxerlv/gonest/extensions"
 )
 
 func main() {
-    // 方法1: クイック作成（シンプルなアプリケーション向け）
-    app := core.CreateApplication()
-    app.Use(recovery.New(nil))
-    app.Use(cors.New(nil))
-    app.GET("/hello", func(ctx abstract.ContextAbstract) error {
+    // WebApplication ビルダーを作成（ASP.NET Core スタイル）
+    builder := core.CreateBuilder()
+
+    // DIコンテナにサービスを追加
+    builder.Services().AddSingleton(&MyService{})
+
+    // アプリケーションをビルド
+    app := builder.BuildWeb()
+
+    // ミドルウェアを使用（拡張メソッド）
+    extensions.UseRecovery(app, nil)
+    extensions.UseCORS(app, nil)
+
+    // ルートを登録
+    app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, map[string]string{"message": "Hello World"})
     })
+
     app.Run()
 }
 ```
@@ -62,34 +72,71 @@ import (
     "github.com/linuxerlv/gonest/core"
     "github.com/linuxerlv/gonest/core/abstract"
     "github.com/linuxerlv/gonest/config"
+    "github.com/linuxerlv/gonest/extensions"
 )
 
 func main() {
-    // ビルダーを作成
+    // WebApplication ビルダーを作成（ASP.NET Core スタイル）
     builder := core.CreateBuilder()
-    
-    // 設定と環境変数を設定（公開プロパティ）
-    builder.Config = config.NewKoanfConfig(".")
-    builder.Env.Set("APP_ENV", "production")
-    
-    // DIコンテナにサービスを登録（Wire注入に対応）
-    builder.Services.AddSingleton(&MyService{})
-    builder.Services.AddScoped(func(s abstract.ServiceCollectionAbstract) *DbContext {
-        return &DbContext{DSN: builder.Env.Get("DATABASE_URL")}
+
+    // 設定と環境変数を構成
+    cfg := config.NewKoanfConfig(".")
+    builder.UseConfig(cfg)
+    builder.Environment().Set("APP_ENV", "production")
+
+    // DIコンテナにサービスを登録
+    builder.Services().AddSingleton(&MyService{})
+    builder.Services().AddScoped(func(s abstract.ServiceCollectionAbstract) *DbContext {
+        return &DbContext{DSN: builder.Environment().Get("DATABASE_URL")}
     })
-    
+
     // アプリケーションをビルド
-    app := builder.Build().(*core.WebApplication)
-    
+    app := builder.BuildWeb()
+
     // DIコンテナからサービスを取得
-    service := core.GetService[*MyService](app.Services)
-    
+    service := core.GetService[*MyService](app.Services())
+
+    // ミドルウェアを使用
+    extensions.UseRecovery(app, nil)
+    extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
+        AllowOrigins: []string{"https://example.com"},
+    })
+
     // ルートを登録
     app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, map[string]string{"message": "Hello World"})
     })
-    
+
     app.Run()
+}
+```
+
+### 汎用アプリケーション（非 Web シナリオ）
+
+```go
+package main
+
+import (
+    "github.com/linuxerlv/gonest/core"
+    "github.com/linuxerlv/gonest/core/abstract"
+)
+
+func main() {
+    // 汎用 Application ビルダーを作成（非 Web シナリオ用）
+    builder := core.CreateApplicationBuilder()
+
+    // サービスを追加
+    builder.Services().AddSingleton(&MyService{})
+    builder.Services().AddTransient(func(s abstract.ServiceCollectionAbstract) *Worker {
+        return &Worker{}
+    })
+
+    // アプリケーションをビルド
+    app := builder.Build()
+
+    // サービスを取得してビジネスロジックを実行
+    service := core.GetService[*MyService](app.Services())
+    service.DoWork()
 }
 ```
 
@@ -208,27 +255,26 @@ app := gonest.NewApplication()
 
 ---
 
-## APIクイックリファレンス
+## APIクイックリファレンス（ASP.NET Core スタイル）
 
 ### アプリケーション作成
 
 ```go
 import "github.com/linuxerlv/gonest/core"
 
-// 方法1: クイック作成（シンプルなアプリケーション向け）
-app := core.CreateApplication()
+// Webアプリケーション（HTTPサーバー付き）
+builder := core.CreateBuilder()           // WebApplicationビルダーを作成
+app := builder.BuildWeb()                 // WebApplicationをビルド
+app.Run()                                 // サーバーを起動
 
-// 方法2: ビルダーパターン（推奨、依存性注入対応）
-builder := core.CreateBuilder()
-builder.Config = cfg           // 設定を設定
-builder.Env.Set("KEY", "val")  // 環境変数を設定
-builder.Services.AddSingleton(&MyService{})  // サービスを登録
-app := builder.Build().(*core.WebApplication)
+// 汎用アプリケーション（非 Web シナリオ）
+builder := core.CreateApplicationBuilder() // Applicationビルダーを作成
+app := builder.Build()                     // Applicationをビルド
 
-// 公開プロパティにアクセス
-cfg := app.Config
-env := app.Env
-services := app.Services
+// サービスにアクセス
+services := builder.Services()             // ServiceCollectionを取得
+cfg := builder.Configuration()             // Configurationを取得
+env := builder.Environment()               // Environmentを取得
 ```
 
 ### ルート登録
@@ -236,12 +282,7 @@ services := app.Services
 ```go
 import "github.com/linuxerlv/gonest/core/abstract"
 
-// Application方法
-app.GET("/users", func(ctx abstract.ContextAbstract) error {
-    return ctx.JSON(200, users)
-})
-
-// WebApplication方法（MapXXXメソッド）
+// MapXXXメソッド（ASP.NET Core スタイル）
 app.MapGet("/users", func(ctx abstract.ContextAbstract) error {
     return ctx.JSON(200, users)
 })
@@ -252,57 +293,75 @@ app.MapPost("/users", func(ctx abstract.ContextAbstract) error {
     return ctx.JSON(201, user)
 })
 
+app.MapPut("/users/:id", func(ctx abstract.ContextAbstract) error {
+    id := ctx.Param("id")
+    return ctx.JSON(200, map[string]string{"id": id})
+})
+
+app.MapDelete("/users/:id", func(ctx abstract.ContextAbstract) error {
+    return ctx.JSON(200, nil)
+})
+
 // ルートグループ
 api := app.Group("/api/v1")
-api.GET("/users", listUsers)
+api.MapGet("/users", listUsers)
 ```
 
-### ミドルウェア
+### ミドルウェア（拡張メソッド）
 
 ```go
-import (
-    "github.com/linuxerlv/gonest/middleware/cors"
-    "github.com/linuxerlv/gonest/middleware/recovery"
-    "github.com/linuxerlv/gonest/middleware/ratelimit"
-)
+import "github.com/linuxerlv/gonest/extensions"
 
-app.Use(recovery.New(nil))
-app.Use(cors.New(&cors.Config{
+// UseXXX拡張メソッド
+extensions.UseRecovery(app, nil)
+extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
     AllowOrigins: []string{"https://example.com"},
-}))
-app.Use(ratelimit.New(&ratelimit.Config{
+})
+extensions.UseRateLimit(app, &extensions.RateLimitMiddlewareOptions{
     Limit:  100,
-    Window: time.Minute,
-}))
+    Window: 60, // 秒
+})
+extensions.UseGzip(app, nil)
+extensions.UseSecurityHeaders(app, nil)
+extensions.UseRequestID(app, nil)
+extensions.UseTimeout(app, &extensions.TimeoutMiddlewareOptions{
+    Timeout: 30, // 秒
+})
+
+// または生のミドルウェアを使用
+app.Use(middleware)
 ```
 
 ### 依存性注入
 
 ```go
-// 登録
-builder.Services.AddSingleton(&MyService{})
-builder.Services.AddScoped(func(s abstract.ServiceCollectionAbstract) *DbContext {
+// サービスを登録
+builder.Services().AddSingleton(&MyService{})
+builder.Services().AddScoped(func(s abstract.ServiceCollectionAbstract) *DbContext {
     return &DbContext{}
 })
+builder.Services().AddTransient(func(s abstract.ServiceCollectionAbstract) *CacheService {
+    return &CacheService{}
+})
 
-// 取得
-service := core.GetService[*MyService](app.Services)
+// アプリケーションからサービスを取得
+service := core.GetService[*MyService](app.Services())
 ```
 
 ### 環境変数
 
 ```go
 // 環境変数を読み取る
-dbUrl := builder.Env.Get("DATABASE_URL")
-port := builder.Env.GetOrDefault("PORT", "8080")
+dbUrl := builder.Environment().Get("DATABASE_URL")
+port := builder.Environment().GetOrDefault("PORT", "8080")
 
 // 存在を確認
-if builder.Env.Has("DEBUG") {
+if builder.Environment().Has("DEBUG") {
     // ...
 }
 
 // すべてを取得
-allEnv := builder.Env.All()
+allEnv := builder.Environment().All()
 ```
 
 ### 設定ファイル
@@ -335,9 +394,9 @@ type ServerConfig struct {
 var serverCfg ServerConfig
 cfg.Unmarshal("server", &serverCfg)
 
-// ビルダーに設定
+// ビルダーに設定（UseConfigメソッドを使用）
 builder := core.CreateBuilder()
-builder.Config = cfg
+builder.UseConfig(cfg)
 ```
 
 ---

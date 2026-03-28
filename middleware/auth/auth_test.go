@@ -175,9 +175,9 @@ func TestAuthMiddleware_Handle(t *testing.T) {
 					t.Error("Expected error, got nil")
 				} else {
 					// Verify it's an unauthorized error
-					httpErr, ok := err.(*gonest.HttpException)
+					httpErr, ok := err.(*gonest.HttpError)
 					if !ok {
-						t.Errorf("Expected HttpException, got %T", err)
+						t.Errorf("Expected HttpError, got %T", err)
 					} else if httpErr.Status() != tt.expectStatus {
 						t.Errorf("Expected status %d, got %d", tt.expectStatus, httpErr.Status())
 					}
@@ -447,9 +447,9 @@ func TestAuthMiddleware_ErrorHandling(t *testing.T) {
 				if err == nil {
 					t.Error("Expected error, got nil")
 				} else {
-					httpErr, ok := err.(*gonest.HttpException)
+					httpErr, ok := err.(*gonest.HttpError)
 					if !ok {
-						t.Errorf("Expected HttpException, got %T", err)
+						t.Errorf("Expected HttpError, got %T", err)
 					} else if httpErr.Status() != http.StatusUnauthorized {
 						t.Errorf("Expected status 401, got %d", httpErr.Status())
 					}
@@ -478,7 +478,7 @@ func TestAuthMiddleware_CustomErrorHandler(t *testing.T) {
 		ContextKey:  "user",
 		ErrorHandler: func(ctx gonest.Context, err error) error {
 			customErrorCalled = true
-			return &gonest.HttpException{
+			return &gonest.HttpError{
 				Code: http.StatusPreconditionFailed,
 				Msg:  "custom: " + err.Error(),
 			}
@@ -498,7 +498,7 @@ func TestAuthMiddleware_CustomErrorHandler(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error, got nil")
 	} else {
-		httpErr := err.(*gonest.HttpException)
+		httpErr := err.(*gonest.HttpError)
 		if httpErr.Status() != http.StatusPreconditionFailed {
 			t.Errorf("Expected custom status 412, got %d", httpErr.Status())
 		}
@@ -590,7 +590,7 @@ func TestAuthMiddleware_BasicAuth(t *testing.T) {
 					t.Error("Expected error for invalid credentials")
 				}
 
-				httpErr := err.(*gonest.HttpException)
+				httpErr := err.(*gonest.HttpError)
 				if httpErr.Status() != http.StatusUnauthorized {
 					t.Errorf("Expected status 401, got %d", httpErr.Status())
 				}
@@ -695,7 +695,7 @@ func TestAuthMiddleware_APIKey(t *testing.T) {
 					t.Error("Expected error for invalid API key")
 				}
 
-				httpErr := err.(*gonest.HttpException)
+				httpErr := err.(*gonest.HttpError)
 				if httpErr.Status() != http.StatusUnauthorized {
 					t.Errorf("Expected status 401, got %d", httpErr.Status())
 				}
@@ -1048,7 +1048,7 @@ func TestAuthMiddleware_JWTProviderIntegration(t *testing.T) {
 	if err2 == nil {
 		t.Error("Expected error with expired token")
 	} else {
-		httpErr := err2.(*gonest.HttpException)
+		httpErr := err2.(*gonest.HttpError)
 		if httpErr.Status() != http.StatusUnauthorized {
 			t.Errorf("Expected status 401, got %d", httpErr.Status())
 		}

@@ -27,7 +27,7 @@ type Config struct {
 	SessionSecret  string
 	SessionMaxAge  int
 	UserContextKey string
-	OnUserLogin    func(ctx abstract.ContextAbstract, user goth.User) error
+	OnUserLogin    func(ctx abstract.Context, user goth.User) error
 	SkipPaths      []string
 }
 
@@ -74,8 +74,8 @@ func setupProvider(cfg ProviderConfig) {
 	}
 }
 
-func (m *OAuthMiddleware) BeginAuthHandler(provider string) abstract.RouteHandlerAbstract {
-	return func(ctx abstract.ContextAbstract) error {
+func (m *OAuthMiddleware) BeginAuthHandler(provider string) abstract.RouteHandler {
+	return func(ctx abstract.Context) error {
 		hc := ctx.(*core.HttpContext)
 		w := hc.ResponseWriter()
 		r := ctx.Request()
@@ -89,8 +89,8 @@ func (m *OAuthMiddleware) BeginAuthHandler(provider string) abstract.RouteHandle
 	}
 }
 
-func (m *OAuthMiddleware) CallbackHandler(provider string) abstract.RouteHandlerAbstract {
-	return func(ctx abstract.ContextAbstract) error {
+func (m *OAuthMiddleware) CallbackHandler(provider string) abstract.RouteHandler {
+	return func(ctx abstract.Context) error {
 		hc := ctx.(*core.HttpContext)
 		w := hc.ResponseWriter()
 		r := ctx.Request()
@@ -119,8 +119,8 @@ func (m *OAuthMiddleware) CallbackHandler(provider string) abstract.RouteHandler
 	}
 }
 
-func (m *OAuthMiddleware) LogoutHandler() abstract.RouteHandlerAbstract {
-	return func(ctx abstract.ContextAbstract) error {
+func (m *OAuthMiddleware) LogoutHandler() abstract.RouteHandler {
+	return func(ctx abstract.Context) error {
 		hc := ctx.(*core.HttpContext)
 		w := hc.ResponseWriter()
 		r := ctx.Request()
@@ -137,18 +137,18 @@ func (m *OAuthMiddleware) LogoutHandler() abstract.RouteHandlerAbstract {
 	}
 }
 
-func (m *OAuthMiddleware) GetUser(ctx abstract.ContextAbstract) *goth.User {
+func (m *OAuthMiddleware) GetUser(ctx abstract.Context) *goth.User {
 	if user, ok := ctx.Get(m.config.UserContextKey).(goth.User); ok {
 		return &user
 	}
 	return nil
 }
 
-func (m *OAuthMiddleware) IsAuthenticated(ctx abstract.ContextAbstract) bool {
+func (m *OAuthMiddleware) IsAuthenticated(ctx abstract.Context) bool {
 	return m.GetUser(ctx) != nil
 }
 
-func (m *OAuthMiddleware) Handle(ctx abstract.ContextAbstract, next func() error) error {
+func (m *OAuthMiddleware) Handle(ctx abstract.Context, next func() error) error {
 	if m.shouldSkip(ctx) {
 		return next()
 	}
@@ -165,13 +165,13 @@ func (m *OAuthMiddleware) Handle(ctx abstract.ContextAbstract, next func() error
 	return next()
 }
 
-func (m *OAuthMiddleware) shouldSkip(ctx abstract.ContextAbstract) bool {
+func (m *OAuthMiddleware) shouldSkip(ctx abstract.Context) bool {
 	path := ctx.Path()
 	return m.skipPaths[path]
 }
 
-func (m *OAuthMiddleware) AsMiddleware() abstract.MiddlewareAbstract {
-	return abstract.MiddlewareFuncAbstract(m.Handle)
+func (m *OAuthMiddleware) AsMiddleware() abstract.Middleware {
+	return abstract.MiddlewareFunc(m.Handle)
 }
 
 func RegisterProviders(providers ...ProviderConfig) {
@@ -185,14 +185,14 @@ func RegisterProviders(providers ...ProviderConfig) {
 	}
 }
 
-func GetUser(ctx abstract.ContextAbstract) *goth.User {
+func GetUser(ctx abstract.Context) *goth.User {
 	if user, ok := ctx.Get("oauth_user").(goth.User); ok {
 		return &user
 	}
 	return nil
 }
 
-func GetUserID(ctx abstract.ContextAbstract) string {
+func GetUserID(ctx abstract.Context) string {
 	user := GetUser(ctx)
 	if user != nil {
 		return user.UserID
@@ -200,7 +200,7 @@ func GetUserID(ctx abstract.ContextAbstract) string {
 	return ""
 }
 
-func GetUserName(ctx abstract.ContextAbstract) string {
+func GetUserName(ctx abstract.Context) string {
 	user := GetUser(ctx)
 	if user != nil {
 		return user.Name
@@ -208,7 +208,7 @@ func GetUserName(ctx abstract.ContextAbstract) string {
 	return ""
 }
 
-func GetEmail(ctx abstract.ContextAbstract) string {
+func GetEmail(ctx abstract.Context) string {
 	user := GetUser(ctx)
 	if user != nil {
 		return user.Email
@@ -216,7 +216,7 @@ func GetEmail(ctx abstract.ContextAbstract) string {
 	return ""
 }
 
-func GetAvatarURL(ctx abstract.ContextAbstract) string {
+func GetAvatarURL(ctx abstract.Context) string {
 	user := GetUser(ctx)
 	if user != nil {
 		return user.AvatarURL
@@ -224,7 +224,7 @@ func GetAvatarURL(ctx abstract.ContextAbstract) string {
 	return ""
 }
 
-func GetProvider(ctx abstract.ContextAbstract) string {
+func GetProvider(ctx abstract.Context) string {
 	user := GetUser(ctx)
 	if user != nil {
 		return user.Provider
@@ -270,7 +270,7 @@ func (u *OAuthUser) ToJSON() string {
 }
 
 type Router interface {
-	GET(path string, handler abstract.RouteHandlerAbstract)
+	GET(path string, handler abstract.RouteHandler)
 }
 
 func RegisterOAuthRoutes(router Router, mw *OAuthMiddleware, providers []string) {

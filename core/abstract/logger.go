@@ -2,28 +2,28 @@ package abstract
 
 import "io"
 
-// LoggerAbstract 日志接口
-type LoggerAbstract interface {
-	Debug(msg string, fields ...FieldAbstract)
-	Info(msg string, fields ...FieldAbstract)
-	Warn(msg string, fields ...FieldAbstract)
-	Error(msg string, fields ...FieldAbstract)
-	Fatal(msg string, fields ...FieldAbstract)
+// Logger 日志接口
+type Logger interface {
+	Debug(msg string, fields ...Field)
+	Info(msg string, fields ...Field)
+	Warn(msg string, fields ...Field)
+	Error(msg string, fields ...Field)
+	Fatal(msg string, fields ...Field)
 }
 
-// FieldAbstract 日志字段接口
-type FieldAbstract interface {
+// Field 日志字段接口
+type Field interface {
 	Key() string
 	Value() any
 }
 
-// LoggerWriterAbstract 日志写入接口
-type LoggerWriterAbstract interface {
+// LoggerWriter 日志写入接口
+type LoggerWriter interface {
 	Write(p []byte) (n int, err error)
 }
 
-// LoggerConfigAbstract 日志配置
-type LoggerConfigAbstract struct {
+// LoggerConfig 日志配置
+type LoggerConfig struct {
 	Level      string
 	Output     io.Writer
 	TimeFormat string
@@ -34,27 +34,27 @@ type LoggerConfigAbstract struct {
 	FileName   string
 }
 
-// GlobalLoggerAbstract 全局日志接口
-type GlobalLoggerAbstract interface {
-	SetGlobalLogger(log LoggerAbstract)
-	GetGlobalLogger() LoggerAbstract
+// GlobalLogger 全局日志接口
+type GlobalLogger interface {
+	SetGlobalLogger(log Logger)
+	GetGlobalLogger() Logger
 }
 
-// Field 日志字段实现
-type Field struct {
+// FieldImpl 日志字段实现
+type FieldImpl struct {
 	key   string
 	value any
 }
 
-func NewField(key string, value any) FieldAbstract {
-	return &Field{key: key, value: value}
+func NewField(key string, value any) Field {
+	return &FieldImpl{key: key, value: value}
 }
 
-func (f *Field) Key() string { return f.key }
-func (f *Field) Value() any  { return f.value }
+func (f *FieldImpl) Key() string { return f.key }
+func (f *FieldImpl) Value() any  { return f.value }
 
 // 常用字段工厂函数
-func Err(err error) FieldAbstract             { return NewField("error", err) }
-func String(key, value string) FieldAbstract  { return NewField(key, value) }
-func Int(key string, value int) FieldAbstract { return NewField(key, value) }
-func Any(key string, value any) FieldAbstract { return NewField(key, value) }
+func Err(err error) Field             { return NewField("error", err) }
+func String(key, value string) Field  { return NewField(key, value) }
+func Int(key string, value int) Field { return NewField(key, value) }
+func Any(key string, value any) Field { return NewField(key, value) }

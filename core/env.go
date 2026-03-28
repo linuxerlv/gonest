@@ -83,4 +83,4 @@ func (e *Env) Unset(key string) {
 	os.Unsetenv(key)
 }
 
-var _ abstract.EnvAbstract = (*Env)(nil)
+var _ abstract.Env = (*Env)(nil)

@@ -74,20 +74,27 @@ package main
 import (
     "github.com/linuxerlv/gonest/core"
     "github.com/linuxerlv/gonest/core/abstract"
+    "github.com/linuxerlv/gonest/extensions"
 )
 
 func main() {
-    // 第一步：创建一个 Web 应用
-    app := core.CreateApplication()
-    
-    // 第二步：定义一个路由（菜单上的一道菜）
+    // 第一步：创建 WebApplication 构建器（ASP.NET Core 风格）
+    builder := core.CreateBuilder()
+
+    // 第二步：构建应用
+    app := builder.BuildWeb()
+
+    // 第三步：使用中间件（可选）
+    extensions.UseRecovery(app, nil)
+
+    // 第四步：定义一个路由（菜单上的一道菜）
     // 当有人访问 "/hello" 这个地址时，执行下面的函数
-    app.GET("/hello", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
         // 返回一段文字给用户
         return ctx.String(200, "Hello World!")
     })
-    
-    // 第三步：启动应用，监听在 8080 端口
+
+    // 第五步：启动应用，监听在 8080 端口
     app.Run()
 }
 ```
@@ -172,31 +179,35 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // GET：获取数据（比如查看用户列表）
-    app.GET("/users", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/users", func(ctx abstract.ContextAbstract) error {
         return ctx.String(200, "获取用户列表")
     })
-    
+
     // POST：创建数据（比如注册新用户）
-    app.POST("/users", func(ctx abstract.ContextAbstract) error {
+    app.MapPost("/users", func(ctx abstract.ContextAbstract) error {
         return ctx.String(201, "创建新用户")
     })
-    
+
     // PUT：更新数据（比如修改用户信息）
-    app.PUT("/users/123", func(ctx abstract.ContextAbstract) error {
-        return ctx.String(200, "更新用户 123")
+    app.MapPut("/users/:id", func(ctx abstract.ContextAbstract) error {
+        id := ctx.Param("id")
+        return ctx.String(200, "更新用户 "+id)
     })
-    
+
     // DELETE：删除数据（比如删除用户）
-    app.DELETE("/users/123", func(ctx abstract.ContextAbstract) error {
-        return ctx.String(200, "删除用户 123")
+    app.MapDelete("/users/:id", func(ctx abstract.ContextAbstract) error {
+        id := ctx.Param("id")
+        return ctx.String(200, "删除用户 "+id)
     })
-    
+
     // PATCH：部分更新数据
-    app.PATCH("/users/123", func(ctx abstract.ContextAbstract) error {
-        return ctx.String(200, "部分更新用户 123")
+    app.MapPatch("/users/:id", func(ctx abstract.ContextAbstract) error {
+        id := ctx.Param("id")
+        return ctx.String(200, "部分更新用户 "+id)
     })
     
     app.Run()
@@ -216,22 +227,23 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // :id 是路径参数，可以匹配任何值
-    app.GET("/users/:id", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/users/:id", func(ctx abstract.ContextAbstract) error {
         // 用 Param 方法获取参数值
         id := ctx.Param("id")
         return ctx.String(200, "用户ID是: " + id)
     })
-    
+
     // 多个路径参数
-    app.GET("/users/:userId/posts/:postId", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/users/:userId/posts/:postId", func(ctx abstract.ContextAbstract) error {
         userId := ctx.Param("userId")
         postId := ctx.Param("postId")
         return ctx.String(200, "用户 "+userId+" 的文章 "+postId)
     })
-    
+
     app.Run()
 }
 ```
@@ -254,16 +266,17 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
-    app.GET("/search", func(ctx abstract.ContextAbstract) error {
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
+    app.MapGet("/search", func(ctx abstract.ContextAbstract) error {
         // 用 Query 方法获取参数
         q := ctx.Query("q")      // 搜索关键词
         page := ctx.Query("page") // 页码
-        
+
         return ctx.String(200, "搜索: "+q+", 页码: "+page)
     })
-    
+
     app.Run()
 }
 ```
@@ -284,17 +297,18 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 创建一个路由组，前缀是 "/api/v1"
     api := app.Group("/api/v1")
-    
+
     // 所有路由都会自动加上 "/api/v1" 前缀
-    api.GET("/users", func(ctx abstract.ContextAbstract) error {
+    api.MapGet("/users", func(ctx abstract.ContextAbstract) error {
         return ctx.String(200, "API v1 用户列表")
     })
-    
-    api.GET("/users/:id", func(ctx abstract.ContextAbstract) error {
+
+    api.MapGet("/users/:id", func(ctx abstract.ContextAbstract) error {
         return ctx.String(200, "API v1 用户详情")
     })
     
@@ -315,8 +329,10 @@ func main() {
 
 | 功能 | 方法 | 示例 |
 |------|------|------|
-| 定义 GET 路由 | `app.GET()` | `app.GET("/hello", handler)` |
-| 定义 POST 路由 | `app.POST()` | `app.POST("/users", handler)` |
+| 创建构建器 | `core.CreateBuilder()` | `builder := core.CreateBuilder()` |
+| 构建应用 | `builder.BuildWeb()` | `app := builder.BuildWeb()` |
+| 定义 GET 路由 | `app.MapGet()` | `app.MapGet("/hello", handler)` |
+| 定义 POST 路由 | `app.MapPost()` | `app.MapPost("/users", handler)` |
 | 获取路径参数 | `ctx.Param()` | `ctx.Param("id")` |
 | 获取 Query 参数 | `ctx.Query()` | `ctx.Query("q")` |
 | 创建路由组 | `app.Group()` | `api := app.Group("/api")` |
@@ -344,30 +360,31 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
-    app.GET("/info", func(ctx abstract.ContextAbstract) error {
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
+    app.MapGet("/info", func(ctx abstract.ContextAbstract) error {
         // 获取请求方法（GET、POST等）
         method := ctx.Method()
-        
+
         // 获取请求路径
         path := ctx.Path()
-        
+
         // 获取请求头（比如 Authorization）
         authHeader := ctx.Header("Authorization")
-        
+
         // 获取 Query 参数
         name := ctx.Query("name")
-        
+
         // 组合成响应信息
         info := fmt.Sprintf(
             "方法: %s\n路径: %s\nAuthorization: %s\n名字: %s",
             method, path, authHeader, name,
         )
-        
+
         return ctx.String(200, info)
     })
-    
+
     app.Run()
 }
 ```
@@ -399,21 +416,22 @@ type User struct {
 }
 
 func main() {
-    app := core.CreateApplication()
-    
-    app.POST("/users", func(ctx abstract.ContextAbstract) error {
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
+    app.MapPost("/users", func(ctx abstract.ContextAbstract) error {
         // 创建一个空的 User 结构体
         var user User
-        
+
         // Bind 方法把 JSON 数据解析到 user 结构体中
         if err := ctx.Bind(&user); err != nil {
             return ctx.String(400, "数据格式错误: "+err.Error())
         }
-        
+
         // 现可以使用 user.Name 和 user.Age
         return ctx.String(200, "收到: 名字="+user.Name+", 年龄="+string(user.Age))
     })
-    
+
     app.Run()
 }
 ```
@@ -444,41 +462,42 @@ type User struct {
 }
 
 func main() {
-    app := core.CreateApplication()
-    
-    app.GET("/user", func(ctx abstract.ContextAbstract) error {
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
+    app.MapGet("/user", func(ctx abstract.ContextAbstract) error {
         // 创建一个用户数据
         user := User{
             ID:   1,
             Name: "张三",
             Age:  25,
         }
-        
+
         // 返回 JSON 格式
         return ctx.JSON(200, user)
     })
-    
+
     // 返回数组
-    app.GET("/users", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/users", func(ctx abstract.ContextAbstract) error {
         users := []User{
             {ID: 1, Name: "张三", Age: 25},
             {ID: 2, Name: "李四", Age: 30},
         }
-        
+
         return ctx.JSON(200, users)
     })
-    
+
     // 返回带消息的响应
-    app.GET("/message", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/message", func(ctx abstract.ContextAbstract) error {
         response := map[string]any{
             "status":  "success",
             "message": "操作成功",
             "data":    User{ID: 1, Name: "张三", Age: 25},
         }
-        
+
         return ctx.JSON(200, response)
     })
-    
+
     app.Run()
 }
 ```
@@ -509,20 +528,21 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 第一个处理函数存储数据
-    app.GET("/test", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/test", func(ctx abstract.ContextAbstract) error {
         // 存储数据
         ctx.Set("user_id", "12345")
         ctx.Set("role", "admin")
-        
+
         // 获取数据
         userId := ctx.Get("user_id")
-        
+
         return ctx.String(200, "用户ID: "+userId.(string))
     })
-    
+
     app.Run()
 }
 ```
@@ -577,8 +597,9 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 第一个中间件
     app.Use(abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
         fmt.Println("中间件1：开始")
@@ -586,7 +607,7 @@ func main() {
         fmt.Println("中间件1：结束")
         return err
     }))
-    
+
     // 第二个中间件
     app.Use(abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
         fmt.Println("中间件2：开始")
@@ -594,9 +615,9 @@ func main() {
         fmt.Println("中间件2：结束")
         return err
     }))
-    
+
     // 处理函数
-    app.GET("/test", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/test", func(ctx abstract.ContextAbstract) error {
         fmt.Println("处理函数执行")
         return ctx.String(200, "OK")
     })
@@ -628,20 +649,21 @@ package main
 import (
     "github.com/linuxerlv/gonest/core"
     "github.com/linuxerlv/gonest/core/abstract"
-    "github.com/linuxerlv/gonest/middleware/recovery"
+    "github.com/linuxerlv/gonest/extensions"
 )
 
 func main() {
-    app := core.CreateApplication()
-    
-    // 添加 Recovery 中间件
-    app.Use(recovery.New(nil))
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
+    // 添加 Recovery 中间件（使用扩展方法）
+    extensions.UseRecovery(app, nil)
+
     // 这个路由会崩溃，但 Recovery 会恢复
-    app.GET("/panic", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/panic", func(ctx abstract.ContextAbstract) error {
         panic("程序崩溃了！")
     })
-    
+
     app.Run()
 }
 ```
@@ -657,25 +679,27 @@ package main
 
 import (
     "github.com/linuxerlv/gonest/core"
-    "github.com/linuxerlv/gonest/middleware/cors"
+    "github.com/linuxerlv/gonest/core/abstract"
+    "github.com/linuxerlv/gonest/extensions"
 )
 
 func main() {
-    app := core.CreateApplication()
-    
-    // 配置 CORS
-    app.Use(cors.New(&cors.Config{
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
+    // 配置 CORS（使用扩展方法）
+    extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{
         AllowOrigins:     []string{"http://localhost:3000"}, // 允许的前端地址
         AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
         AllowHeaders:     []string{"Authorization", "Content-Type"},
         AllowCredentials: true,  // 允许携带 Cookie
         MaxAge:           86400, // 缓存时间（秒）
-    }))
-    
-    app.GET("/data", func(ctx abstract.ContextAbstract) error {
+    })
+
+    app.MapGet("/data", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, map[string]string{"message": "跨域成功"})
     })
-    
+
     app.Run()
 }
 ```
@@ -688,25 +712,25 @@ func main() {
 package main
 
 import (
-    "time"
     "github.com/linuxerlv/gonest/core"
     "github.com/linuxerlv/gonest/core/abstract"
-    "github.com/linuxerlv/gonest/middleware/ratelimit"
+    "github.com/linuxerlv/gonest/extensions"
 )
 
 func main() {
-    app := core.CreateApplication()
-    
-    // 每分钟最多 10 次请求
-    app.Use(ratelimit.New(&ratelimit.Config{
-        Limit:  10,            // 限制次数
-        Window: time.Minute,   // 时间窗口
-    }))
-    
-    app.GET("/limited", func(ctx abstract.ContextAbstract) error {
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
+    // 每分钟最多 10 次请求（使用扩展方法）
+    extensions.UseRateLimit(app, &extensions.RateLimitMiddlewareOptions{
+        Limit:  10,  // 限制次数
+        Window: 60,  // 时间窗口（秒）
+    })
+
+    app.MapGet("/limited", func(ctx abstract.ContextAbstract) error {
         return ctx.String(200, "请求成功")
     })
-    
+
     app.Run()
 }
 ```
@@ -761,16 +785,17 @@ func AuthMiddleware() abstract.MiddlewareAbstract {
 }
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 使用自定义中间件
     app.Use(TimingMiddleware())
     app.Use(AuthMiddleware())
-    
-    app.GET("/protected", func(ctx abstract.ContextAbstract) error {
+
+    app.MapGet("/protected", func(ctx abstract.ContextAbstract) error {
         return ctx.String(200, "这是需要登录才能看到的内容")
     })
-    
+
     app.Run()
 }
 ```
@@ -788,12 +813,13 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 检查 API Key 的中间件
     app.Use(abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
         apiKey := ctx.Header("X-API-Key")
-        
+
         // 如果 API Key 不正确，直接返回错误，不继续执行
         if apiKey != "my-secret-key" {
             return ctx.String(403, "API Key 错误")
@@ -802,11 +828,11 @@ func main() {
         // API Key 正确，继续执行
         return next()
     }))
-    
-    app.GET("/api/data", func(ctx abstract.ContextAbstract) error {
+
+    app.MapGet("/api/data", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, map[string]string{"data": "敏感数据"})
     })
-    
+
     app.Run()
 }
 ```
@@ -815,12 +841,16 @@ func main() {
 
 ### 4.6 小结
 
-| 中间件 | 功能 | 使用场景 |
-|--------|------|----------|
-| Recovery | 恢复崩溃 | 防止 panic 导致应用崩溃 |
-| CORS | 跨域处理 | 前后端分离项目 |
-| RateLimit | 限流 | 防止恶意请求 |
-| 自定义 | 自由定义 | 验证、日志、计时等 |
+| 中间件 | 功能 | 使用场景 | 扩展方法 |
+|--------|------|----------|----------|
+| Recovery | 恢复崩溃 | 防止 panic 导致应用崩溃 | `extensions.UseRecovery(app, nil)` |
+| CORS | 跨域处理 | 前后端分离项目 | `extensions.UseCORS(app, options)` |
+| RateLimit | 限流 | 防止恶意请求 | `extensions.UseRateLimit(app, options)` |
+| Gzip | 压缩响应 | 减少传输大小 | `extensions.UseGzip(app, nil)` |
+| Security | 安全头 | 增强安全性 | `extensions.UseSecurityHeaders(app, nil)` |
+| RequestID | 请求ID | 追踪请求 | `extensions.UseRequestID(app, nil)` |
+| Timeout | 超时控制 | 防止请求挂起 | `extensions.UseTimeout(app, options)` |
+| 自定义 | 自由定义 | 验证、日志、计时等 | `app.Use(middleware)` |
 
 ---
 
@@ -839,38 +869,39 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 400 错误：用户提交的数据有问题
-    app.GET("/bad-request", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/bad-request", func(ctx abstract.ContextAbstract) error {
         return abstract.BadRequest("数据格式错误")
     })
-    
+
     // 401 错误：需要登录
-    app.GET("/unauthorized", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/unauthorized", func(ctx abstract.ContextAbstract) error {
         return abstract.Unauthorized("请先登录")
     })
-    
+
     // 403 错误：没有权限
-    app.GET("/forbidden", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/forbidden", func(ctx abstract.ContextAbstract) error {
         return abstract.Forbidden("你没有权限访问")
     })
-    
+
     // 404 错误：资源不存在
-    app.GET("/not-found", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/not-found", func(ctx abstract.ContextAbstract) error {
         return abstract.NotFound("用户不存在")
     })
-    
+
     // 500 错误：服务器内部错误
-    app.GET("/internal-error", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/internal-error", func(ctx abstract.ContextAbstract) error {
         return abstract.InternalError("服务器出错了")
     })
-    
+
     // 自定义状态码错误
-    app.GET("/custom-error", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/custom-error", func(ctx abstract.ContextAbstract) error {
         return abstract.NewHttpException(418, "我是一个茶壶")
     })
-    
+
     app.Run()
 }
 ```
@@ -909,13 +940,14 @@ func (f *MyExceptionFilter) Catch(ctx abstract.ContextAbstract, err error) error
 }
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 添加全局异常过滤器
     app.UseGlobalFilters(&MyExceptionFilter{})
-    
+
     // 这个路由会返回错误，过滤器会处理
-    app.GET("/user/:id", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/user/:id", func(ctx abstract.ContextAbstract) error {
         id := ctx.Param("id")
         
         // 模拟：如果 id 不是数字，返回错误
@@ -1043,20 +1075,21 @@ func RoleGuard(requiredRole string) abstract.GuardAbstract {
 }
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 全局 Guard：所有路由都要检查
     app.UseGlobalGuards(&AuthGuard{})
-    
+
     // 单个路由的 Guard
-    app.GET("/admin", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/admin", func(ctx abstract.ContextAbstract) error {
         return ctx.String(200, "管理员页面")
     }).Guard(RoleGuard("admin"))
-    
-    app.GET("/user", func(ctx abstract.ContextAbstract) error {
+
+    app.MapGet("/user", func(ctx abstract.ContextAbstract) error {
         return ctx.String(200, "用户页面")
     })
-    
+
     app.Run()
 }
 ```
@@ -1113,15 +1146,16 @@ func LoggingInterceptor() abstract.InterceptorAbstract {
 }
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 全局 Interceptor
     app.UseGlobalInterceptors(LoggingInterceptor())
-    
-    app.GET("/test", func(ctx abstract.ContextAbstract) error {
+
+    app.MapGet("/test", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, map[string]string{"message": "test"})
     })
-    
+
     app.Run()
 }
 ```
@@ -1149,17 +1183,18 @@ func (p *ValidationPipe) Transform(value any, ctx abstract.ContextAbstract) (any
 }
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 全局 Pipe
     app.UseGlobalPipes(&ValidationPipe{})
-    
-    app.POST("/data", func(ctx abstract.ContextAbstract) error {
+
+    app.MapPost("/data", func(ctx abstract.ContextAbstract) error {
         var data map[string]any
         ctx.Bind(&data)
         return ctx.JSON(200, data)
     })
-    
+
     app.Run()
 }
 ```
@@ -1238,11 +1273,12 @@ func (c *UserController) Delete(ctx abstract.ContextAbstract) error {
 }
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 注册 Controller
     app.Controller(&UserController{})
-    
+
     app.Run()
 }
 ```
@@ -1292,12 +1328,13 @@ func (c *PostController) Get(ctx abstract.ContextAbstract) error {
 }
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 注册多个 Controller
     app.Controller(&UserController{})
     app.Controller(&PostController{})
-    
+
     app.Run()
 }
 ```
@@ -1327,7 +1364,8 @@ func (c *APIController) Routes(r abstract.RouterAbstract) {
 }
 
 func main() {
-    app := core.CreateApplication()
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
     app.Controller(&APIController{})
     app.Run()
 }
@@ -1404,30 +1442,30 @@ func (db *MemoryDatabase) FindUser(id string) map[string]string {
 }
 
 func main() {
-    // 使用 Builder 模式
-    builder := core.NewWebApplicationBuilder()
-    
-    // 注册 Singleton 服务（单例）- 直接访问 Services 属性
-    builder.Services.AddSingleton(NewMemoryDatabase())
-    
+    // 使用 Builder 模式（ASP.NET Core 风格）
+    builder := core.CreateBuilder()
+
+    // 注册 Singleton 服务（单例）- 使用 Services() 方法
+    builder.Services().AddSingleton(NewMemoryDatabase())
+
     // 构建应用
-    app := builder.Build().(*core.WebApplication)
-    
-    // 使用服务 - 直接访问 Services 属性
-    app.GET("/users/:id", func(ctx abstract.ContextAbstract) error {
+    app := builder.BuildWeb()
+
+    // 使用服务 - 使用 Services() 方法
+    app.MapGet("/users/:id", func(ctx abstract.ContextAbstract) error {
         // 获取服务
-        db := core.GetService[Database](app.Services)
-        
+        db := core.GetService[Database](app.Services())
+
         // 使用服务
         user := db.FindUser(ctx.Param("id"))
-        
+
         if user == nil {
             return abstract.NotFound("用户不存在")
         }
-        
+
         return ctx.JSON(200, user)
     })
-    
+
     app.Run()
 }
 ```
@@ -1452,22 +1490,22 @@ func (l *ConsoleLogger) Log(message string) {
 }
 
 func main() {
-    builder := core.NewWebApplicationBuilder()
-    
-    // 使用工厂函数注册（每次获取都调用工厂）- 直接访问 Services 属性
-    builder.Services.AddTransient(func(s abstract.ServiceCollectionAbstract) Logger {
+    builder := core.CreateBuilder()
+
+    // 使用工厂函数注册（每次获取都调用工厂）- 使用 Services() 方法
+    builder.Services().AddTransient(func(s abstract.ServiceCollectionAbstract) Logger {
         return &ConsoleLogger{}
     })
-    
-    app := builder.Build().(*core.WebApplication)
-    
-    app.GET("/log", func(ctx abstract.ContextAbstract) error {
+
+    app := builder.BuildWeb()
+
+    app.MapGet("/log", func(ctx abstract.ContextAbstract) error {
         // 每次调用都创建新的 Logger
-        logger := core.GetService[Logger](app.Services)
+        logger := core.GetService[Logger](app.Services())
         logger.Log("测试日志")
         return ctx.String(200, "OK")
     })
-    
+
     app.Run()
 }
 ```
@@ -1532,7 +1570,7 @@ import (
 func main() {
     // 创建配置实例
     cfg := config.NewKoanfConfig(".")
-    
+
     // 加载 YAML 配置文件
     err := cfg.Load(
         config.NewFileProvider("config.yaml", config.NewYAMLParser()),
@@ -1541,27 +1579,27 @@ func main() {
     if err != nil {
         panic("加载配置失败: " + err.Error())
     }
-    
+
     // 或加载 JSON 配置文件
     // cfg.Load(
     //     config.NewFileProvider("config.json", config.NewJSONParser()),
     //     config.NewJSONParser(),
     // )
-    
-    // 创建应用 - 直接设置 Config 属性
-    builder := core.NewWebApplicationBuilder()
-    builder.Config = cfg
-    app := builder.Build().(*core.WebApplication)
-    
+
+    // 创建应用 - 使用 UseConfig 方法（ASP.NET Core 风格）
+    builder := core.CreateBuilder()
+    builder.UseConfig(cfg)
+    app := builder.BuildWeb()
+
     // 读取配置
-    app.GET("/config", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/config", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, map[string]any{
             "port":  cfg.GetString("server.port"),
             "name":  cfg.GetString("server.name"),
             "debug": cfg.GetBool("debug"),
         })
     })
-    
+
     // 启动应用（会自动读取 server.port）
     app.Run()
 }
@@ -1607,19 +1645,19 @@ func main() {
     // 绑定到结构体
     var appCfg AppConfig
     cfg.Unmarshal("", &appCfg)  // 空字符串表示从根开始
-    
-    builder := core.NewWebApplicationBuilder()
-    builder.Config = cfg
-    app := builder.Build().(*core.WebApplication)
-    
-    app.GET("/server-info", func(ctx abstract.ContextAbstract) error {
+
+    builder := core.CreateBuilder()
+    builder.UseConfig(cfg)
+    app := builder.BuildWeb()
+
+    app.MapGet("/server-info", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, appCfg.Server)
     })
-    
-    app.GET("/database-info", func(ctx abstract.ContextAbstract) error {
+
+    app.MapGet("/database-info", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, appCfg.Database)
     })
-    
+
     app.Run()
 }
 ```
@@ -1649,22 +1687,22 @@ func main() {
     // 2. 再加载环境变量（会覆盖同名配置）
     // 环境变量 APP_SERVER_PORT 会映射到 server.port
     cfg.Load(config.NewEnvProvider(config.WithEnvPrefix("APP_")), nil)
-    
-    builder := core.NewWebApplicationBuilder()
-    builder.Config = cfg
-    
+
+    builder := core.CreateBuilder()
+    builder.UseConfig(cfg)
+
     // 也可以直接访问环境变量
-    dbUrl := builder.Env.Get("DATABASE_URL")
-    
-    app := builder.Build().(*core.WebApplication)
-    
-    app.GET("/config", func(ctx abstract.ContextAbstract) error {
+    dbUrl := builder.Environment().Get("DATABASE_URL")
+
+    app := builder.BuildWeb()
+
+    app.MapGet("/config", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, map[string]any{
             "port":         cfg.GetString("server.port"),
             "database_url": dbUrl,
         })
     })
-    
+
     app.Run()
 }
 ```
@@ -1768,29 +1806,29 @@ func main() {
     
     // 创建日志实例
     log, _ := logger.NewZapLogger(logCfg)
-    
-    // 创建应用并使用日志 - 直接设置 Logger 属性
-    builder := core.NewWebApplicationBuilder()
-    builder.Logger = log
-    app := builder.Build().(*core.WebApplication)
-    
+
+    // 创建应用并使用日志 - 使用 UseLogger 方法（ASP.NET Core 风格）
+    builder := core.CreateBuilder()
+    builder.UseLogger(log)
+    app := builder.BuildWeb()
+
     // 记录日志
     log.Info("应用启动")
     log.Info("监听端口",
         logger.String("port", "8080"),
         logger.Int("workers", 4),
     )
-    
-    app.GET("/test", func(ctx abstract.ContextAbstract) error {
+
+    app.MapGet("/test", func(ctx abstract.ContextAbstract) error {
         // 在处理函数中记录日志
         log.Info("收到请求",
             logger.String("method", ctx.Method()),
             logger.String("path", ctx.Path()),
         )
-        
+
         return ctx.String(200, "OK")
     })
-    
+
     app.Run()
 }
 ```
@@ -1851,34 +1889,35 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 创建定时任务调度器
     scheduler := task.NewMemoryCronScheduler()
-    
+
     // 添加定时任务：每分钟执行
     scheduler.AddIntervalJob(time.Minute, "cleanup", func(ctx context.Context) error {
         fmt.Println("执行清理任务:", time.Now())
         return nil
     })
-    
+
     // 添加定时任务：每小时执行
     scheduler.AddIntervalJob(time.Hour, "stats", func(ctx context.Context) error {
         fmt.Println("发送统计邮件:", time.Now())
         return nil
     })
-    
+
     // 启动调度器
     scheduler.Start()
-    
+
     // 简单路由
-    app.GET("/", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/", func(ctx abstract.ContextAbstract) error {
         return ctx.String(200, "OK")
     })
-    
+
     // 启动应用
     app.Run()
-    
+
     // 程序退出时停止调度器
     scheduler.Stop(context.Background())
 }
@@ -1902,11 +1941,12 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 创建任务队列（5个工作线程）
     queue := task.NewMemoryTaskQueue("tasks", 5, 1000)
-    
+
     // 注册任务处理器：发送邮件
     queue.RegisterHandler("send-email", func(ctx context.Context, t *task.QueueTask) error {
         // 解析任务数据
@@ -1925,37 +1965,37 @@ func main() {
     
     // 启动队列
     queue.Start(context.Background())
-    
+
     // 路由：添加发送邮件任务
-    app.POST("/send-email", func(ctx abstract.ContextAbstract) error {
+    app.MapPost("/send-email", func(ctx abstract.ContextAbstract) error {
         var req struct {
             To      string `json:"to"`
             Subject string `json:"subject"`
             Body    string `json:"body"`
         }
         ctx.Bind(&req)
-        
+
         // 创建任务
         payload, _ := json.Marshal(req)
         queue.Enqueue(&task.QueueTask{
             Type:    "send-email",
             Payload: payload,
         })
-        
+
         // 立即返回，邮件在后台发送
         return ctx.JSON(200, map[string]string{
             "message": "邮件任务已添加",
         })
     })
-    
+
     // 查看队列状态
-    app.GET("/queue/stats", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/queue/stats", func(ctx abstract.ContextAbstract) error {
         stats := queue.Stats()
         return ctx.JSON(200, stats)
     })
-    
+
     app.Run()
-    
+
     // 退出时停止队列
     queue.Stop(context.Background())
 }
@@ -1996,55 +2036,56 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 创建 JWT 提供者
     jwtProvider := auth.NewJWTProvider(&auth.JWTConfig{
         Secret:          "my-secret-key",     // 密钥
         AccessTokenTTL:  time.Hour,           // Token 有效期
         RefreshTokenTTL: 24 * time.Hour,      // 刷新 Token 有效期
     }, nil)
-    
+
     // 登录路由：发放 Token
-    app.POST("/login", func(ctx abstract.ContextAbstract) error {
+    app.MapPost("/login", func(ctx abstract.ContextAbstract) error {
         var req struct {
             Username string `json:"username"`
             Password string `json:"password"`
         }
         ctx.Bind(&req)
-        
+
         // 验证用户名密码（这里简化）
         if req.Username != "admin" || req.Password != "123456" {
             return abstract.Unauthorized("用户名或密码错误")
         }
-        
+
         // 生成 Token
         token, _ := jwtProvider.GenerateToken(&auth.Claims{
             UserID:   "1",
             Username: req.Username,
             Roles:    []string{"admin"},
         })
-        
+
         return ctx.JSON(200, map[string]string{
             "token": token,
         })
     })
-    
+
     // 使用认证中间件
     app.Use(auth.New(jwtProvider, nil).AsMiddleware())
-    
+
     // 需要认证的路由
-    app.GET("/profile", func(ctx abstract.ContextAbstract) error {
+    app.MapGet("/profile", func(ctx abstract.ContextAbstract) error {
         // 获取用户信息
         userId := auth.GetUserID(ctx)
         username := auth.GetUsername(ctx)
-        
+
         return ctx.JSON(200, map[string]string{
             "userId":   userId,
             "username": username,
         })
     })
-    
+
     app.Run()
 }
 ```
@@ -2063,8 +2104,9 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 配置 Basic Auth
     app.Use(auth.NewBasicAuth(&auth.BasicAuthConfig{
         Users: map[string]string{
@@ -2073,11 +2115,11 @@ func main() {
         },
         Realm: "Restricted Area",
     }))
-    
-    app.GET("/protected", func(ctx abstract.ContextAbstract) error {
+
+    app.MapGet("/protected", func(ctx abstract.ContextAbstract) error {
         return ctx.String(200, "认证成功")
     })
-    
+
     app.Run()
 }
 ```
@@ -2101,18 +2143,19 @@ import (
 )
 
 func main() {
-    app := core.CreateApplication()
-    
+    builder := core.CreateBuilder()
+    app := builder.BuildWeb()
+
     // 配置 API Key
     app.Use(auth.NewAPIKey(&auth.APIKeyConfig{
         Keys:       []string{"key1", "key2", "key3"},
         HeaderName: "X-API-Key",
     }))
-    
-    app.GET("/api/data", func(ctx abstract.ContextAbstract) error {
+
+    app.MapGet("/api/data", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, map[string]string{"data": "敏感数据"})
     })
-    
+
     app.Run()
 }
 ```
@@ -2322,34 +2365,34 @@ func (f *ExceptionFilter) Catch(ctx abstract.ContextAbstract, err error) error {
 func main() {
     // 创建配置
     cfg := config.NewKoanfConfig(".")
-    
+
     // 创建日志
     logCfg := logger.DevelopmentConfig()
     log, _ := logger.NewZapLogger(logCfg)
-    
-    // 使用 Builder 创建应用
-    builder := core.NewWebApplicationBuilder()
-    builder.UseConfigConcrete(cfg)
-    builder.UseLoggerConcrete(log)
-    
+
+    // 使用 Builder 创建应用（ASP.NET Core 风格）
+    builder := core.CreateBuilder()
+    builder.UseConfig(cfg)
+    builder.UseLogger(log)
+
     // 注册服务
     db := NewDatabaseService()
-    core.AddSingleton(builder.ServicesConcrete(), db)
-    
+    builder.Services().AddSingleton(db)
+
     // 构建应用
-    app := builder.Build()
-    
-    // 添加全局中间件
-    app.Use(recovery.New(nil))  // 恢复崩溃
-    app.Use(cors.New(nil))      // 跨域处理
-    
+    app := builder.BuildWeb()
+
+    // 添加全局中间件（使用扩展方法）
+    extensions.UseRecovery(app, nil)  // 恢复崩溃
+    extensions.UseCORS(app, nil)      // 跨域处理
+
     // 添加异常过滤器
     app.UseGlobalFilters(&ExceptionFilter{})
-    
+
     // 注册控制器
     app.Controller(&UserController{db: db})
     app.Controller(&PostController{db: db})
-    
+
     // 创建任务调度器
     scheduler := task.NewMemoryCronScheduler()
     scheduler.AddIntervalJob(time.Hour, "cleanup", func(ctx context.Context) error {
@@ -2398,17 +2441,22 @@ abstract.NotFound("不存在")        // 404
 abstract.InternalError("服务器错误") // 500
 ```
 
-### 中间件
+### 中间件（扩展方法）
 
 ```go
-import "github.com/linuxerlv/gonest/middleware/recovery"
-app.Use(recovery.New(nil))
+import "github.com/linuxerlv/gonest/extensions"
 
-import "github.com/linuxerlv/gonest/middleware/cors"
-app.Use(cors.New(&cors.Config{...}))
+// 使用扩展方法添加中间件
+extensions.UseRecovery(app, nil)
+extensions.UseCORS(app, &extensions.CORSMiddlewareOptions{...})
+extensions.UseRateLimit(app, &extensions.RateLimitMiddlewareOptions{...})
+extensions.UseGzip(app, nil)
+extensions.UseSecurityHeaders(app, nil)
+extensions.UseRequestID(app, nil)
+extensions.UseTimeout(app, &extensions.TimeoutMiddlewareOptions{...})
 
-import "github.com/linuxerlv/gonest/middleware/ratelimit"
-app.Use(ratelimit.New(&ratelimit.Config{...}))
+// 或者使用原始中间件
+app.Use(middleware)
 ```
 
 ---

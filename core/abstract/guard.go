@@ -1,14 +1,14 @@
 package abstract
 
-// GuardAbstract 守卫接口
-type GuardAbstract interface {
-	CanActivate(ctx ContextAbstract) bool
+// Guard 守卫接口
+type Guard interface {
+	CanActivate(ctx Context) bool
 }
 
-// GuardFuncAbstract 守卫函数类型
-type GuardFuncAbstract func(ctx ContextAbstract) bool
+// GuardFunc 守卫函数类型
+type GuardFunc func(ctx Context) bool
 
-// CanActivate 实现 GuardAbstract 接口
-func (f GuardFuncAbstract) CanActivate(ctx ContextAbstract) bool {
+// CanActivate 实现 Guard 接口
+func (f GuardFunc) CanActivate(ctx Context) bool {
 	return f(ctx)
 }

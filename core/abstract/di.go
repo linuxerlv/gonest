@@ -2,50 +2,50 @@ package abstract
 
 import "reflect"
 
-// ServiceLifetimeAbstract 服务生命周期类型
-type ServiceLifetimeAbstract int
+// ServiceLifetime 服务生命周期类型
+type ServiceLifetime int
 
 const (
-	Singleton ServiceLifetimeAbstract = iota
+	Singleton ServiceLifetime = iota
 	Scoped
 	Transient
 )
 
-// ServiceDescriptorAbstract 服务描述符接口
-type ServiceDescriptorAbstract interface {
+// ServiceDescriptor 服务描述符接口
+type ServiceDescriptor interface {
 	ServiceType() reflect.Type
 	Instance() any
 	Factory() any
-	Lifetime() ServiceLifetimeAbstract
+	Lifetime() ServiceLifetime
 }
 
-// ServiceResolverAbstract 服务解析接口
-type ServiceResolverAbstract interface {
+// ServiceResolver 服务解析接口
+type ServiceResolver interface {
 	GetService(serviceType reflect.Type) any
 	GetRequiredService(serviceType reflect.Type) any
 }
 
-// ServiceRegistrarAbstract 服务注册接口
-type ServiceRegistrarAbstract interface {
-	AddSingleton(instance any) ServiceRegistrarAbstract
-	AddSingletonFactory(serviceType reflect.Type, factory any) ServiceRegistrarAbstract
-	AddScoped(serviceType reflect.Type, factory any) ServiceRegistrarAbstract
-	AddTransient(serviceType reflect.Type, factory any) ServiceRegistrarAbstract
+// ServiceRegistrar 服务注册接口
+type ServiceRegistrar interface {
+	AddSingleton(instance any) ServiceRegistrar
+	AddSingletonFactory(serviceType reflect.Type, factory any) ServiceRegistrar
+	AddScoped(serviceType reflect.Type, factory any) ServiceRegistrar
+	AddTransient(serviceType reflect.Type, factory any) ServiceRegistrar
 }
 
-// ServiceCollectionAbstract 服务集合接口（组合）
-type ServiceCollectionAbstract interface {
-	ServiceResolverAbstract
-	ServiceRegistrarAbstract
+// ServiceCollection 服务集合接口（组合）
+type ServiceCollection interface {
+	ServiceResolver
+	ServiceRegistrar
 }
 
-// ScopeAbstract 作用域接口
-type ScopeAbstract interface {
+// Scope 作用域接口
+type Scope interface {
 	Dispose()
 	IsDisposed() bool
 }
 
-// DisposableAbstract 可释放接口
-type DisposableAbstract interface {
+// Disposable 可释放接口
+type Disposable interface {
 	Dispose() error
 }

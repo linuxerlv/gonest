@@ -15,7 +15,7 @@ type Config struct {
 	SessionName    string
 	ContextKey     string
 	SkipPaths      []string
-	ErrorHandler   func(ctx abstract.ContextAbstract, err error) error
+	ErrorHandler   func(ctx abstract.Context, err error) error
 	SessionManager *scs.SessionManager
 }
 
@@ -48,7 +48,7 @@ func New(cfg *Config) *SessionMiddleware {
 	}
 }
 
-func (m *SessionMiddleware) Handle(ctx abstract.ContextAbstract, next func() error) error {
+func (m *SessionMiddleware) Handle(ctx abstract.Context, next func() error) error {
 	if m.shouldSkip(ctx) {
 		return next()
 	}
@@ -72,23 +72,23 @@ func (m *SessionMiddleware) Handle(ctx abstract.ContextAbstract, next func() err
 	return handlerErr
 }
 
-func (m *SessionMiddleware) shouldSkip(ctx abstract.ContextAbstract) bool {
+func (m *SessionMiddleware) shouldSkip(ctx abstract.Context) bool {
 	path := ctx.Path()
 	return m.skipPaths[path]
 }
 
-func (m *SessionMiddleware) AsMiddleware() abstract.MiddlewareAbstract {
-	return abstract.MiddlewareFuncAbstract(m.Handle)
+func (m *SessionMiddleware) AsMiddleware() abstract.Middleware {
+	return abstract.MiddlewareFunc(m.Handle)
 }
 
-func GetSession(ctx abstract.ContextAbstract) *scs.SessionManager {
+func GetSession(ctx abstract.Context) *scs.SessionManager {
 	if sm, ok := ctx.Get("session").(*scs.SessionManager); ok {
 		return sm
 	}
 	return nil
 }
 
-func Get(ctx abstract.ContextAbstract, key string) any {
+func Get(ctx abstract.Context, key string) any {
 	sm := GetSession(ctx)
 	if sm == nil {
 		return nil
@@ -96,7 +96,7 @@ func Get(ctx abstract.ContextAbstract, key string) any {
 	return sm.Get(ctx.Context(), key)
 }
 
-func GetString(ctx abstract.ContextAbstract, key string) string {
+func GetString(ctx abstract.Context, key string) string {
 	sm := GetSession(ctx)
 	if sm == nil {
 		return ""
@@ -104,7 +104,7 @@ func GetString(ctx abstract.ContextAbstract, key string) string {
 	return sm.GetString(ctx.Context(), key)
 }
 
-func GetInt(ctx abstract.ContextAbstract, key string) int {
+func GetInt(ctx abstract.Context, key string) int {
 	sm := GetSession(ctx)
 	if sm == nil {
 		return 0
@@ -112,7 +112,7 @@ func GetInt(ctx abstract.ContextAbstract, key string) int {
 	return sm.GetInt(ctx.Context(), key)
 }
 
-func GetInt64(ctx abstract.ContextAbstract, key string) int64 {
+func GetInt64(ctx abstract.Context, key string) int64 {
 	sm := GetSession(ctx)
 	if sm == nil {
 		return 0
@@ -120,7 +120,7 @@ func GetInt64(ctx abstract.ContextAbstract, key string) int64 {
 	return sm.GetInt64(ctx.Context(), key)
 }
 
-func GetBool(ctx abstract.ContextAbstract, key string) bool {
+func GetBool(ctx abstract.Context, key string) bool {
 	sm := GetSession(ctx)
 	if sm == nil {
 		return false
@@ -128,7 +128,7 @@ func GetBool(ctx abstract.ContextAbstract, key string) bool {
 	return sm.GetBool(ctx.Context(), key)
 }
 
-func GetBytes(ctx abstract.ContextAbstract, key string) []byte {
+func GetBytes(ctx abstract.Context, key string) []byte {
 	sm := GetSession(ctx)
 	if sm == nil {
 		return nil
@@ -136,7 +136,7 @@ func GetBytes(ctx abstract.ContextAbstract, key string) []byte {
 	return sm.GetBytes(ctx.Context(), key)
 }
 
-func GetTime(ctx abstract.ContextAbstract, key string) time.Time {
+func GetTime(ctx abstract.Context, key string) time.Time {
 	sm := GetSession(ctx)
 	if sm == nil {
 		return time.Time{}
@@ -144,35 +144,35 @@ func GetTime(ctx abstract.ContextAbstract, key string) time.Time {
 	return sm.GetTime(ctx.Context(), key)
 }
 
-func Put(ctx abstract.ContextAbstract, key string, value any) {
+func Put(ctx abstract.Context, key string, value any) {
 	sm := GetSession(ctx)
 	if sm != nil {
 		sm.Put(ctx.Context(), key, value)
 	}
 }
 
-func Remove(ctx abstract.ContextAbstract, key string) {
+func Remove(ctx abstract.Context, key string) {
 	sm := GetSession(ctx)
 	if sm != nil {
 		sm.Remove(ctx.Context(), key)
 	}
 }
 
-func Clear(ctx abstract.ContextAbstract) {
+func Clear(ctx abstract.Context) {
 	sm := GetSession(ctx)
 	if sm != nil {
 		sm.Clear(ctx.Context())
 	}
 }
 
-func Destroy(ctx abstract.ContextAbstract) {
+func Destroy(ctx abstract.Context) {
 	sm := GetSession(ctx)
 	if sm != nil {
 		sm.Destroy(ctx.Context())
 	}
 }
 
-func RenewToken(ctx abstract.ContextAbstract) error {
+func RenewToken(ctx abstract.Context) error {
 	sm := GetSession(ctx)
 	if sm != nil {
 		return sm.RenewToken(ctx.Context())
@@ -180,7 +180,7 @@ func RenewToken(ctx abstract.ContextAbstract) error {
 	return nil
 }
 
-func Status(ctx abstract.ContextAbstract) bool {
+func Status(ctx abstract.Context) bool {
 	sm := GetSession(ctx)
 	if sm != nil {
 		return sm.Status(ctx.Context()) != scs.Unmodified
@@ -188,15 +188,15 @@ func Status(ctx abstract.ContextAbstract) bool {
 	return false
 }
 
-func GetUserID(ctx abstract.ContextAbstract) string {
+func GetUserID(ctx abstract.Context) string {
 	return GetString(ctx, "user_id")
 }
 
-func SetUserID(ctx abstract.ContextAbstract, userID string) {
+func SetUserID(ctx abstract.Context, userID string) {
 	Put(ctx, "user_id", userID)
 }
 
-func GetUser(ctx abstract.ContextAbstract, dest any) bool {
+func GetUser(ctx abstract.Context, dest any) bool {
 	data := GetBytes(ctx, "user")
 	if data == nil {
 		return false
@@ -204,7 +204,7 @@ func GetUser(ctx abstract.ContextAbstract, dest any) bool {
 	return json.Unmarshal(data, dest) == nil
 }
 
-func SetUser(ctx abstract.ContextAbstract, user any) error {
+func SetUser(ctx abstract.Context, user any) error {
 	data, err := json.Marshal(user)
 	if err != nil {
 		return err
@@ -213,12 +213,12 @@ func SetUser(ctx abstract.ContextAbstract, user any) error {
 	return nil
 }
 
-func ClearUser(ctx abstract.ContextAbstract) {
+func ClearUser(ctx abstract.Context) {
 	Remove(ctx, "user_id")
 	Remove(ctx, "user")
 }
 
-func IsAuthenticated(ctx abstract.ContextAbstract) bool {
+func IsAuthenticated(ctx abstract.Context) bool {
 	return GetUserID(ctx) != ""
 }
 

@@ -2,47 +2,47 @@ package abstract
 
 import "net/http"
 
-type RouteHandlerAbstract func(ctx ContextAbstract) error
+type RouteHandler func(ctx Context) error
 
-type RouteAdderAbstract interface {
-	AddRoute(method, path string, handler RouteHandlerAbstract) RouteBuilderAbstract
+type RouteAdder interface {
+	AddRoute(method, path string, handler RouteHandler) RouteBuilder
 }
 
-type RouteGetterAbstract interface {
-	GET(path string, handler RouteHandlerAbstract) RouteBuilderAbstract
-	POST(path string, handler RouteHandlerAbstract) RouteBuilderAbstract
-	PUT(path string, handler RouteHandlerAbstract) RouteBuilderAbstract
-	DELETE(path string, handler RouteHandlerAbstract) RouteBuilderAbstract
-	PATCH(path string, handler RouteHandlerAbstract) RouteBuilderAbstract
-	OPTIONS(path string, handler RouteHandlerAbstract) RouteBuilderAbstract
+type RouteGetter interface {
+	GET(path string, handler RouteHandler) RouteBuilder
+	POST(path string, handler RouteHandler) RouteBuilder
+	PUT(path string, handler RouteHandler) RouteBuilder
+	DELETE(path string, handler RouteHandler) RouteBuilder
+	PATCH(path string, handler RouteHandler) RouteBuilder
+	OPTIONS(path string, handler RouteHandler) RouteBuilder
 }
 
-type GroupCreatorAbstract interface {
-	Group(prefix string) RouteGroupAbstract
+type GroupCreator interface {
+	Group(prefix string) RouteGroup
 }
 
-type RouteMatcherAbstract interface {
-	Match(req *http.Request) (RouteAbstract, map[string]string)
+type RouteMatcher interface {
+	Match(req *http.Request) (Route, map[string]string)
 }
 
-type RouterAbstract interface {
-	RouteGetterAbstract
-	GroupCreatorAbstract
-	RouteMatcherAbstract
+type Router interface {
+	RouteGetter
+	GroupCreator
+	RouteMatcher
 }
 
-type RouteAbstract interface {
+type Route interface {
 	Method() string
 	Path() string
-	Handler() RouteHandlerAbstract
+	Handler() RouteHandler
 }
 
-type RouteBuilderAbstract interface {
-	Guard(guard GuardAbstract) RouteBuilderAbstract
-	Interceptor(interceptor InterceptorAbstract) RouteBuilderAbstract
-	Pipe(pipe PipeAbstract) RouteBuilderAbstract
+type RouteBuilder interface {
+	Guard(guard Guard) RouteBuilder
+	Interceptor(interceptor Interceptor) RouteBuilder
+	Pipe(pipe Pipe) RouteBuilder
 }
 
-type RouteGroupAbstract interface {
-	RouteGetterAbstract
+type RouteGroup interface {
+	RouteGetter
 }

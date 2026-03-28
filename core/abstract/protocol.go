@@ -2,20 +2,20 @@ package abstract
 
 import "context"
 
-// MessageTypeAbstract WebSocket消息类型
-type MessageTypeAbstract int
+// MessageType WebSocket消息类型
+type MessageType int
 
 const (
-	TextMessageAbstract   MessageTypeAbstract = 1
-	BinaryMessageAbstract MessageTypeAbstract = 2
-	CloseMessageAbstract  MessageTypeAbstract = 8
-	PingMessageAbstract   MessageTypeAbstract = 9
-	PongMessageAbstract   MessageTypeAbstract = 10
+	TextMessage   MessageType = 1
+	BinaryMessage MessageType = 2
+	CloseMessage  MessageType = 8
+	PingMessage   MessageType = 9
+	PongMessage   MessageType = 10
 )
 
-// WSContextAbstract WebSocket上下文接口
-type WSContextAbstract interface {
-	ContextRunnerAbstract
+// WSContext WebSocket上下文接口
+type WSContext interface {
+	ContextRunner
 	// 连接信息
 	ClientID() string
 	RemoteAddr() string
@@ -24,7 +24,7 @@ type WSContextAbstract interface {
 	SendBinary(data []byte) error
 	SendJSON(v any) error
 	// 接收消息
-	Receive() (MessageTypeAbstract, []byte, error)
+	Receive() (MessageType, []byte, error)
 	ReceiveJSON(v any) error
 	// 连接管理
 	Close() error
@@ -36,12 +36,12 @@ type WSContextAbstract interface {
 	LeaveRoom(room string)
 }
 
-// WSHandlerAbstract WebSocket处理函数类型
-type WSHandlerAbstract func(ctx WSContextAbstract) error
+// WSHandler WebSocket处理函数类型
+type WSHandler func(ctx WSContext) error
 
-// SSEContextAbstract SSE上下文接口
-type SSEContextAbstract interface {
-	ContextRunnerAbstract
+// SSEContext SSE上下文接口
+type SSEContext interface {
+	ContextRunner
 	// 客户端信息
 	ClientID() string
 	// 发送事件
@@ -57,12 +57,12 @@ type SSEContextAbstract interface {
 	LeaveRoom(room string)
 }
 
-// SSEHandlerAbstract SSE处理函数类型
-type SSEHandlerAbstract func(ctx SSEContextAbstract) error
+// SSEHandler SSE处理函数类型
+type SSEHandler func(ctx SSEContext) error
 
-// GRPCContextAbstract gRPC上下文接口
-type GRPCContextAbstract interface {
-	ContextRunnerAbstract
+// GRPCContext gRPC上下文接口
+type GRPCContext interface {
+	ContextRunner
 	// 请求信息
 	Method() string
 	Service() string
@@ -77,8 +77,8 @@ type GRPCContextAbstract interface {
 	SetError(err error)
 }
 
-// ProtocolAdapterAbstract 协议适配器接口
-type ProtocolAdapterAbstract interface {
+// ProtocolAdapter 协议适配器接口
+type ProtocolAdapter interface {
 	Name() string
 	Scheme() string
 	Start(addr string) error
@@ -86,40 +86,40 @@ type ProtocolAdapterAbstract interface {
 	Running() bool
 }
 
-// HTTPServerAbstract HTTP服务器接口
-type HTTPServerAbstract interface {
-	ProtocolAdapterAbstract
-	RouteGetterAbstract
-	GroupCreatorAbstract
+// HTTPServer HTTP服务器接口
+type HTTPServer interface {
+	ProtocolAdapter
+	RouteGetter
+	GroupCreator
 	Static(prefix string, root string)
 	StaticFile(path string, file string)
 }
 
-// WSServerAbstract WebSocket服务器接口
-type WSServerAbstract interface {
-	ProtocolAdapterAbstract
-	WS(path string, handler WSHandlerAbstract)
+// WSServer WebSocket服务器接口
+type WSServer interface {
+	ProtocolAdapter
+	WS(path string, handler WSHandler)
 	Broadcast(msg []byte) error
 	BroadcastText(msg string) error
 	BroadcastTo(room string, msg []byte) error
 	SendTo(clientID string, msg []byte) error
-	GetRoom(room string) []WSContextAbstract
-	GetClient(clientID string) WSContextAbstract
+	GetRoom(room string) []WSContext
+	GetClient(clientID string) WSContext
 }
 
-// SSEServerAbstract SSE服务器接口
-type SSEServerAbstract interface {
-	ProtocolAdapterAbstract
-	SSE(path string, handler SSEHandlerAbstract)
+// SSEServer SSE服务器接口
+type SSEServer interface {
+	ProtocolAdapter
+	SSE(path string, handler SSEHandler)
 	Broadcast(event string, data string) error
 	BroadcastTo(room string, event string, data string) error
 	SendTo(clientID string, event string, data string) error
-	GetClient(clientID string) SSEContextAbstract
+	GetClient(clientID string) SSEContext
 }
 
-// GRPCServerAbstract gRPC服务器接口
-type GRPCServerAbstract interface {
-	ProtocolAdapterAbstract
+// GRPCServer gRPC服务器接口
+type GRPCServer interface {
+	ProtocolAdapter
 	RegisterService(desc any, impl any)
 	Use(interceptor any)
 }

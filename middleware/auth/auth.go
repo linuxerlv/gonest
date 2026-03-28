@@ -14,9 +14,9 @@ type Config struct {
 	AuthScheme     string
 	ContextKey     string
 	SkipPaths      []string
-	SkipFunc       func(ctx abstract.ContextAbstract) bool
-	SuccessHandler func(ctx abstract.ContextAbstract) error
-	ErrorHandler   func(ctx abstract.ContextAbstract, err error) error
+	SkipFunc       func(ctx abstract.Context) bool
+	SuccessHandler func(ctx abstract.Context) error
+	ErrorHandler   func(ctx abstract.Context, err error) error
 }
 
 func DefaultConfig() *Config {
@@ -60,7 +60,7 @@ func New(provider *JWTProvider, config *Config) *AuthMiddleware {
 	}
 }
 
-func (m *AuthMiddleware) Handle(ctx abstract.ContextAbstract, next func() error) error {
+func (m *AuthMiddleware) Handle(ctx abstract.Context, next func() error) error {
 	if m.shouldSkip(ctx) {
 		return next()
 	}
@@ -90,7 +90,7 @@ func (m *AuthMiddleware) Handle(ctx abstract.ContextAbstract, next func() error)
 	return next()
 }
 
-func (m *AuthMiddleware) shouldSkip(ctx abstract.ContextAbstract) bool {
+func (m *AuthMiddleware) shouldSkip(ctx abstract.Context) bool {
 	if m.config.SkipFunc != nil && m.config.SkipFunc(ctx) {
 		return true
 	}
@@ -105,7 +105,7 @@ func (m *AuthMiddleware) shouldSkip(ctx abstract.ContextAbstract) bool {
 	return false
 }
 
-func (m *AuthMiddleware) extractToken(ctx abstract.ContextAbstract) (string, error) {
+func (m *AuthMiddleware) extractToken(ctx abstract.Context) (string, error) {
 	parts := strings.Split(m.config.TokenLookup, ":")
 	if len(parts) != 2 {
 		return "", ErrMissingToken
@@ -155,7 +155,7 @@ func (m *AuthMiddleware) extractToken(ctx abstract.ContextAbstract) (string, err
 	}
 }
 
-func (m *AuthMiddleware) handleError(ctx abstract.ContextAbstract, err error) error {
+func (m *AuthMiddleware) handleError(ctx abstract.Context, err error) error {
 	if m.config.ErrorHandler != nil {
 		return m.config.ErrorHandler(ctx, err)
 	}
@@ -172,18 +172,18 @@ func (m *AuthMiddleware) handleError(ctx abstract.ContextAbstract, err error) er
 	}
 }
 
-func (m *AuthMiddleware) AsMiddleware() abstract.MiddlewareAbstract {
-	return abstract.MiddlewareFuncAbstract(m.Handle)
+func (m *AuthMiddleware) AsMiddleware() abstract.Middleware {
+	return abstract.MiddlewareFunc(m.Handle)
 }
 
-func GetClaims(ctx abstract.ContextAbstract) *Claims {
+func GetClaims(ctx abstract.Context) *Claims {
 	if claims, ok := ctx.Get("jwt_claims").(*Claims); ok {
 		return claims
 	}
 	return nil
 }
 
-func GetUserID(ctx abstract.ContextAbstract) string {
+func GetUserID(ctx abstract.Context) string {
 	if claims := GetClaims(ctx); claims != nil {
 		return claims.UserID
 	}
@@ -193,7 +193,7 @@ func GetUserID(ctx abstract.ContextAbstract) string {
 	return ""
 }
 
-func GetUsername(ctx abstract.ContextAbstract) string {
+func GetUsername(ctx abstract.Context) string {
 	if claims := GetClaims(ctx); claims != nil {
 		return claims.Username
 	}
@@ -203,7 +203,7 @@ func GetUsername(ctx abstract.ContextAbstract) string {
 	return ""
 }
 
-func GetRoles(ctx abstract.ContextAbstract) []string {
+func GetRoles(ctx abstract.Context) []string {
 	if claims := GetClaims(ctx); claims != nil {
 		return claims.Roles
 	}
@@ -213,14 +213,14 @@ func GetRoles(ctx abstract.ContextAbstract) []string {
 	return nil
 }
 
-func GetString(ctx abstract.ContextAbstract, key string) string {
+func GetString(ctx abstract.Context, key string) string {
 	if val, ok := ctx.Get(key).(string); ok {
 		return val
 	}
 	return ""
 }
 
-func HasRole(ctx abstract.ContextAbstract, role string) bool {
+func HasRole(ctx abstract.Context, role string) bool {
 	roles := GetRoles(ctx)
 	for _, r := range roles {
 		if r == role {
@@ -230,7 +230,7 @@ func HasRole(ctx abstract.ContextAbstract, role string) bool {
 	return false
 }
 
-func HasAnyRole(ctx abstract.ContextAbstract, roles ...string) bool {
+func HasAnyRole(ctx abstract.Context, roles ...string) bool {
 	userRoles := GetRoles(ctx)
 	for _, userRole := range userRoles {
 		for _, requiredRole := range roles {
@@ -242,7 +242,7 @@ func HasAnyRole(ctx abstract.ContextAbstract, roles ...string) bool {
 	return false
 }
 
-func HasAllRoles(ctx abstract.ContextAbstract, roles ...string) bool {
+func HasAllRoles(ctx abstract.Context, roles ...string) bool {
 	userRoles := GetRoles(ctx)
 	for _, requiredRole := range roles {
 		found := false
@@ -272,7 +272,7 @@ type BasicAuthConfig struct {
 	ValidateFunc func(username, password string) bool
 }
 
-func NewBasicAuth(config *BasicAuthConfig) abstract.MiddlewareAbstract {
+func NewBasicAuth(config *BasicAuthConfig) abstract.Middleware {
 	if config == nil {
 		config = &BasicAuthConfig{
 			Users:      make(map[string]string),
@@ -281,7 +281,7 @@ func NewBasicAuth(config *BasicAuthConfig) abstract.MiddlewareAbstract {
 		}
 	}
 
-	return abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
 		username, password, ok := ctx.Request().BasicAuth()
 		if !ok {
 			hc := ctx.(*core.HttpContext)
@@ -314,7 +314,7 @@ type APIKeyConfig struct {
 	ValidateFunc func(key string) bool
 }
 
-func NewAPIKey(config *APIKeyConfig) abstract.MiddlewareAbstract {
+func NewAPIKey(config *APIKeyConfig) abstract.Middleware {
 	if config == nil {
 		config = &APIKeyConfig{
 			HeaderName: "X-API-Key",
@@ -322,7 +322,7 @@ func NewAPIKey(config *APIKeyConfig) abstract.MiddlewareAbstract {
 		}
 	}
 
-	return abstract.MiddlewareFuncAbstract(func(ctx abstract.ContextAbstract, next func() error) error {
+	return abstract.MiddlewareFunc(func(ctx abstract.Context, next func() error) error {
 		var key string
 
 		if config.HeaderName != "" {

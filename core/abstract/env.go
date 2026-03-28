@@ -1,8 +1,8 @@
 package abstract
 
-// EnvAbstract 环境变量接口
+// Env 环境变量接口
 // 用于读取和管理系统环境变量，支持依赖注入和测试替换
-type EnvAbstract interface {
+type Env interface {
 	// Get 获取环境变量，不存在返回空字符串
 	Get(key string) string
 

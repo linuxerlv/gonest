@@ -6,23 +6,28 @@ import (
 	"net/http"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/linuxerlv/gonest/config"
 	"github.com/linuxerlv/gonest/core/abstract"
 	"github.com/linuxerlv/gonest/logger"
 )
 
+const (
+	defaultShutdownTimeout = 30 * time.Second
+)
+
 type ServiceDescriptor struct {
 	serviceType reflect.Type
 	instance    any
 	factory     any
-	lifetime    abstract.ServiceLifetimeAbstract
+	lifetime    abstract.ServiceLifetime
 }
 
-func (d *ServiceDescriptor) ServiceType() reflect.Type                  { return d.serviceType }
-func (d *ServiceDescriptor) Instance() any                              { return d.instance }
-func (d *ServiceDescriptor) Factory() any                               { return d.factory }
-func (d *ServiceDescriptor) Lifetime() abstract.ServiceLifetimeAbstract { return d.lifetime }
+func (d *ServiceDescriptor) ServiceType() reflect.Type          { return d.serviceType }
+func (d *ServiceDescriptor) Instance() any                      { return d.instance }
+func (d *ServiceDescriptor) Factory() any                       { return d.factory }
+func (d *ServiceDescriptor) Lifetime() abstract.ServiceLifetime { return d.lifetime }
 
 type ServiceCollection struct {
 	descriptors map[reflect.Type]*ServiceDescriptor
@@ -37,7 +42,7 @@ func NewServiceCollection() *ServiceCollection {
 	}
 }
 
-func (s *ServiceCollection) AddSingleton(instance any) abstract.ServiceRegistrarAbstract {
+func (s *ServiceCollection) AddSingleton(instance any) abstract.ServiceRegistrar {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	serviceType := reflect.TypeOf(instance)
@@ -49,7 +54,7 @@ func (s *ServiceCollection) AddSingleton(instance any) abstract.ServiceRegistrar
 	return s
 }
 
-func (s *ServiceCollection) AddSingletonFactory(serviceType reflect.Type, factory any) abstract.ServiceRegistrarAbstract {
+func (s *ServiceCollection) AddSingletonFactory(serviceType reflect.Type, factory any) abstract.ServiceRegistrar {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.descriptors[serviceType] = &ServiceDescriptor{
@@ -60,7 +65,7 @@ func (s *ServiceCollection) AddSingletonFactory(serviceType reflect.Type, factor
 	return s
 }
 
-func (s *ServiceCollection) AddScoped(serviceType reflect.Type, factory any) abstract.ServiceRegistrarAbstract {
+func (s *ServiceCollection) AddScoped(serviceType reflect.Type, factory any) abstract.ServiceRegistrar {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.descriptors[serviceType] = &ServiceDescriptor{
@@ -71,7 +76,7 @@ func (s *ServiceCollection) AddScoped(serviceType reflect.Type, factory any) abs
 	return s
 }
 
-func (s *ServiceCollection) AddTransient(serviceType reflect.Type, factory any) abstract.ServiceRegistrarAbstract {
+func (s *ServiceCollection) AddTransient(serviceType reflect.Type, factory any) abstract.ServiceRegistrar {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.descriptors[serviceType] = &ServiceDescriptor{
@@ -95,7 +100,7 @@ func (s *ServiceCollection) GetService(serviceType reflect.Type) any {
 			return desc.Instance()
 		}
 		if desc.Factory() != nil {
-			if fn, ok := desc.Factory().(func(abstract.ServiceCollectionAbstract) any); ok {
+			if fn, ok := desc.Factory().(func(abstract.ServiceCollection) any); ok {
 				instance := fn(s)
 				s.instances[serviceType] = instance
 				return instance
@@ -103,7 +108,7 @@ func (s *ServiceCollection) GetService(serviceType reflect.Type) any {
 		}
 	case abstract.Scoped, abstract.Transient:
 		if desc.Factory() != nil {
-			if fn, ok := desc.Factory().(func(abstract.ServiceCollectionAbstract) any); ok {
+			if fn, ok := desc.Factory().(func(abstract.ServiceCollection) any); ok {
 				return fn(s)
 			}
 		}
@@ -134,7 +139,7 @@ func AddSingleton[T any](s *ServiceCollection, instance T) *ServiceCollection {
 	return s
 }
 
-func AddSingletonFunc[T any](s *ServiceCollection, factory func(abstract.ServiceCollectionAbstract) T) *ServiceCollection {
+func AddSingletonFunc[T any](s *ServiceCollection, factory func(abstract.ServiceCollection) T) *ServiceCollection {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var zero T
@@ -150,7 +155,7 @@ func AddSingletonFunc[T any](s *ServiceCollection, factory func(abstract.Service
 	return s
 }
 
-func AddScoped[T any](s *ServiceCollection, factory func(abstract.ServiceCollectionAbstract) T) *ServiceCollection {
+func AddScoped[T any](s *ServiceCollection, factory func(abstract.ServiceCollection) T) *ServiceCollection {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var zero T
@@ -166,7 +171,7 @@ func AddScoped[T any](s *ServiceCollection, factory func(abstract.ServiceCollect
 	return s
 }
 
-func AddTransient[T any](s *ServiceCollection, factory func(abstract.ServiceCollectionAbstract) T) *ServiceCollection {
+func AddTransient[T any](s *ServiceCollection, factory func(abstract.ServiceCollection) T) *ServiceCollection {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var zero T
@@ -182,7 +187,7 @@ func AddTransient[T any](s *ServiceCollection, factory func(abstract.ServiceColl
 	return s
 }
 
-func GetService[T any](s abstract.ServiceCollectionAbstract) T {
+func GetService[T any](s abstract.ServiceCollection) T {
 	var zero T
 	serviceType := reflect.TypeOf(zero)
 	if serviceType == nil {
@@ -195,7 +200,7 @@ func GetService[T any](s abstract.ServiceCollectionAbstract) T {
 	return v.(T)
 }
 
-func GetRequiredService[T any](s abstract.ServiceCollectionAbstract) T {
+func GetRequiredService[T any](s abstract.ServiceCollection) T {
 	var zero T
 	serviceType := reflect.TypeOf(zero)
 	if serviceType == nil {
@@ -217,166 +222,242 @@ func IsNil(v any) bool {
 	return false
 }
 
-var _ abstract.ServiceCollectionAbstract = (*ServiceCollection)(nil)
+var _ abstract.ServiceCollection = (*ServiceCollection)(nil)
 
-type WebApplicationBuilder struct {
-	Services *ServiceCollection
-	Config   config.Config
-	Env      abstract.EnvAbstract
-	Logger   logger.Logger
-	Host     *HostBuilder
-	mu       sync.RWMutex
+// ApplicationBuilder 通用应用构建器
+type ApplicationBuilder struct {
+	services      *ServiceCollection
+	configuration config.Config
+	environment   abstract.Env
+	logging       logger.Logger
+	mu            sync.RWMutex
 }
 
-func NewWebApplicationBuilder() *WebApplicationBuilder {
-	return &WebApplicationBuilder{
-		Services: NewServiceCollection(),
-		Env:      NewEnv(),
-		Host:     NewHostBuilder(),
+func NewApplicationBuilder() *ApplicationBuilder {
+	return &ApplicationBuilder{
+		services:    NewServiceCollection(),
+		environment: NewEnv(),
 	}
 }
 
-func (b *WebApplicationBuilder) UseConfig(cfg abstract.ConfigAbstract) abstract.WebApplicationBuilderAbstract {
-	b.mu.Lock()
-	if cfg != nil {
-		if adapter, ok := cfg.(*ConfigAdapter); ok {
-			b.Config = adapter.Unwrap()
-		}
-	}
-	b.mu.Unlock()
-	return b
+func (b *ApplicationBuilder) Services() abstract.ServiceCollection {
+	return b.services
 }
 
-func (b *WebApplicationBuilder) UseLogger(log abstract.LoggerAbstract) abstract.WebApplicationBuilderAbstract {
-	b.mu.Lock()
-	if log != nil {
-		if adapter, ok := log.(*LoggerAdapter); ok {
-			b.Logger = adapter.Unwrap()
-		}
-	}
-	b.mu.Unlock()
-	return b
-}
-
-func (b *WebApplicationBuilder) ConfigureServices(configure func(abstract.ServiceCollectionAbstract)) abstract.WebApplicationBuilderAbstract {
-	configure(b.Services)
-	return b
-}
-
-func (b *WebApplicationBuilder) Build() abstract.WebApplicationAbstract {
-	app := &WebApplication{
-		Application: NewApplication(),
-		Config:      b.Config,
-		Env:         b.Env,
-		Services:    b.Services,
-		Logger:      b.Logger,
-		builder:     b,
-	}
-	if b.Logger != nil {
-		logger.SetGlobalLogger(b.Logger)
-	}
-	return app
-}
-
-type WebApplication struct {
-	*Application
-	Config   config.Config
-	Env      abstract.EnvAbstract
-	Services *ServiceCollection
-	Logger   logger.Logger
-	builder  *WebApplicationBuilder
-}
-
-func (WebApplication) CreateBuilder(args ...string) *WebApplicationBuilder {
-	builder := NewWebApplicationBuilder()
-	if len(args) > 0 {
-		builder.Host.SetArgs(args)
-	}
-	return builder
-}
-
-func (a *WebApplication) Configuration() abstract.ConfigAbstract {
-	if a.Config != nil {
-		return NewConfigAdapter(a.Config)
+func (b *ApplicationBuilder) Configuration() abstract.Config {
+	if b.configuration != nil {
+		return NewConfigAdapter(b.configuration)
 	}
 	return nil
 }
 
-func (a *WebApplication) Log() abstract.LoggerAbstract {
-	if a.Logger != nil {
-		return NewLoggerAdapter(a.Logger)
+func (b *ApplicationBuilder) Environment() abstract.Env {
+	return b.environment
+}
+
+func (b *ApplicationBuilder) Logging() abstract.Logger {
+	if b.logging != nil {
+		return NewLoggerAdapter(b.logging)
 	}
 	return NewLoggerAdapter(logger.GetGlobalLogger())
 }
 
-func (a *WebApplication) ConfigurationConcrete() config.Config {
-	return a.Config
-}
-
-func (a *WebApplication) LogConcrete() logger.Logger {
-	if a.Logger != nil {
-		return a.Logger
-	}
-	return logger.GetGlobalLogger()
-}
-
-func (a *WebApplication) Run() error {
-	addr := ":8080"
-	cfg := a.ConfigurationConcrete()
+func (b *ApplicationBuilder) UseConfig(cfg abstract.Config) *ApplicationBuilder {
+	b.mu.Lock()
 	if cfg != nil {
-		if port := cfg.GetString("server.port"); port != "" {
-			addr = ":" + port
+		if adapter, ok := cfg.(*ConfigAdapter); ok {
+			b.configuration = adapter.Unwrap()
 		}
 	}
-	log := a.LogConcrete()
+	b.mu.Unlock()
+	return b
+}
+
+func (b *ApplicationBuilder) UseLogger(log abstract.Logger) *ApplicationBuilder {
+	b.mu.Lock()
 	if log != nil {
-		log.Info(fmt.Sprintf("Server starting on %s", addr))
+		if adapter, ok := log.(*LoggerAdapter); ok {
+			b.logging = adapter.Unwrap()
+		}
 	}
-	return a.Listen(addr)
+	b.mu.Unlock()
+	return b
 }
 
-func (a *WebApplication) RunAsync() <-chan error {
-	errCh := make(chan error, 1)
-	go func() { errCh <- a.Run() }()
-	return errCh
+func (b *ApplicationBuilder) Build() abstract.Application {
+	app := &HostApplication{
+		config:   b.configuration,
+		env:      b.environment,
+		services: b.services,
+		logger:   b.logging,
+		values:   make(map[string]any),
+		stopCh:   make(chan struct{}),
+		runCh:    make(chan error, 1),
+	}
+	if b.logging != nil {
+		logger.SetGlobalLogger(b.logging)
+	}
+	return app
 }
 
-func (a *WebApplication) WaitForShutdown() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		a.Shutdown(ctx)
-		cancel()
-	}()
-	return a.Run()
+var _ abstract.ApplicationBuilder = (*ApplicationBuilder)(nil)
+
+// WebApplicationBuilder Web应用构建器
+type WebApplicationBuilder struct {
+	*ApplicationBuilder
+	Host *HostBuilder
 }
 
-func (a *WebApplication) MapGet(path string, handler any) abstract.RouteBuilderAbstract {
+func NewWebApplicationBuilder() *WebApplicationBuilder {
+	return &WebApplicationBuilder{
+		ApplicationBuilder: NewApplicationBuilder(),
+		Host:               NewHostBuilder(),
+	}
+}
+
+func (b *WebApplicationBuilder) WebHost() abstract.WebHostBuilder {
+	return b.Host
+}
+
+func (b *WebApplicationBuilder) Build() abstract.Application {
+	return b.BuildWeb()
+}
+
+func (b *WebApplicationBuilder) BuildWeb() abstract.WebApplication {
+	app := &WebApplication{
+		Application: &Application{
+			config:       b.configuration,
+			env:          b.environment,
+			services:     b.services,
+			logger:       b.logging,
+			router:       NewRouter(),
+			controllers:  make([]abstract.Controller, 0),
+			middlewares:  make([]abstract.Middleware, 0),
+			guards:       make([]abstract.Guard, 0),
+			interceptors: make([]abstract.Interceptor, 0),
+			pipes:        make([]abstract.Pipe, 0),
+			filters:      make([]abstract.ExceptionFilter, 0),
+			values:       make(map[string]any),
+		},
+		builder: b,
+	}
+	if b.logging != nil {
+		logger.SetGlobalLogger(b.logging)
+	}
+	return app
+}
+
+func (b *WebApplicationBuilder) UseConfig(cfg abstract.Config) *WebApplicationBuilder {
+	b.ApplicationBuilder.UseConfig(cfg)
+	return b
+}
+
+func (b *WebApplicationBuilder) UseLogger(log abstract.Logger) *WebApplicationBuilder {
+	b.ApplicationBuilder.UseLogger(log)
+	return b
+}
+
+var _ abstract.WebApplicationBuilder = (*WebApplicationBuilder)(nil)
+
+// WebApplication Web应用实现
+type WebApplication struct {
+	*Application
+	builder *WebApplicationBuilder
+}
+
+func (a *WebApplication) Services() abstract.ServiceCollection {
+	return a.Application.services
+}
+
+func (a *WebApplication) Use(middleware abstract.Middleware) abstract.WebApplication {
+	a.Application.middlewares = append(a.Application.middlewares, middleware)
+	return a
+}
+
+func (a *WebApplication) UseGlobalGuards(guards ...abstract.Guard) abstract.WebApplication {
+	a.Application.guards = append(a.Application.guards, guards...)
+	return a
+}
+
+func (a *WebApplication) UseGlobalInterceptors(interceptors ...abstract.Interceptor) abstract.WebApplication {
+	a.Application.interceptors = append(a.Application.interceptors, interceptors...)
+	return a
+}
+
+func (a *WebApplication) UseGlobalPipes(pipes ...abstract.Pipe) abstract.WebApplication {
+	a.Application.pipes = append(a.Application.pipes, pipes...)
+	return a
+}
+
+func (a *WebApplication) UseGlobalFilters(filters ...abstract.ExceptionFilter) abstract.WebApplication {
+	a.Application.filters = append(a.Application.filters, filters...)
+	return a
+}
+
+func (a *WebApplication) MapGet(path string, handler any) abstract.RouteBuilder {
 	return a.registerRoute("GET", path, handler)
 }
 
-func (a *WebApplication) MapPost(path string, handler any) abstract.RouteBuilderAbstract {
+func (a *WebApplication) MapPost(path string, handler any) abstract.RouteBuilder {
 	return a.registerRoute("POST", path, handler)
 }
 
-func (a *WebApplication) MapPut(path string, handler any) abstract.RouteBuilderAbstract {
+func (a *WebApplication) MapPut(path string, handler any) abstract.RouteBuilder {
 	return a.registerRoute("PUT", path, handler)
 }
 
-func (a *WebApplication) MapDelete(path string, handler any) abstract.RouteBuilderAbstract {
+func (a *WebApplication) MapDelete(path string, handler any) abstract.RouteBuilder {
 	return a.registerRoute("DELETE", path, handler)
 }
 
-func (a *WebApplication) MapPatch(path string, handler any) abstract.RouteBuilderAbstract {
+func (a *WebApplication) MapPatch(path string, handler any) abstract.RouteBuilder {
 	return a.registerRoute("PATCH", path, handler)
 }
 
-func (a *WebApplication) registerRoute(method, path string, handler any) abstract.RouteBuilderAbstract {
+func (a *WebApplication) Map(method string, path string, handler any) abstract.RouteBuilder {
+	return a.registerRoute(method, path, handler)
+}
+
+func (a *WebApplication) MapGroup(prefix string) abstract.RouteGroup {
+	return a.Application.router.Group(prefix)
+}
+
+func (a *WebApplication) UseRouting() abstract.WebApplication {
+	return a
+}
+
+func (a *WebApplication) UseEndpoints(configure func(abstract.EndpointRouteBuilder)) abstract.WebApplication {
+	endpointBuilder := &EndpointRouteBuilder{app: a}
+	configure(endpointBuilder)
+	return a
+}
+
+func (a *WebApplication) UseAuthentication() abstract.WebApplication {
+	return a
+}
+
+func (a *WebApplication) UseAuthorization() abstract.WebApplication {
+	return a
+}
+
+func (a *WebApplication) Urls() []string {
+	if a.builder != nil && a.builder.Host != nil {
+		return a.builder.Host.urls
+	}
+	return []string{"http://localhost:8080"}
+}
+
+func (a *WebApplication) Addresses() []string {
+	return a.Urls()
+}
+
+func (a *WebApplication) registerRoute(method, path string, handler any) abstract.RouteBuilder {
 	routeHandler := a.wrapHandler(handler)
 	return a.Application.router.addRoute(method, path, routeHandler)
 }
 
-func (a *WebApplication) wrapHandler(handler any) abstract.RouteHandlerAbstract {
-	if h, ok := handler.(abstract.RouteHandlerAbstract); ok {
+func (a *WebApplication) wrapHandler(handler any) abstract.RouteHandler {
+	if h, ok := handler.(abstract.RouteHandler); ok {
 		return h
 	}
 	hv := reflect.ValueOf(handler)
@@ -384,7 +465,7 @@ func (a *WebApplication) wrapHandler(handler any) abstract.RouteHandlerAbstract 
 	if ht.Kind() == reflect.Func && ht.NumIn() == 1 {
 		switch ht.NumOut() {
 		case 1:
-			return func(ctx abstract.ContextAbstract) error {
+			return func(ctx abstract.Context) error {
 				result := hv.Call([]reflect.Value{reflect.ValueOf(ctx)})
 				if len(result) > 0 {
 					if err, ok := result[0].Interface().(error); ok {
@@ -394,7 +475,7 @@ func (a *WebApplication) wrapHandler(handler any) abstract.RouteHandlerAbstract 
 				return nil
 			}
 		case 2:
-			return func(ctx abstract.ContextAbstract) error {
+			return func(ctx abstract.Context) error {
 				results := hv.Call([]reflect.Value{reflect.ValueOf(ctx)})
 				if len(results) >= 2 {
 					if err, ok := results[1].Interface().(error); ok && err != nil {
@@ -408,17 +489,134 @@ func (a *WebApplication) wrapHandler(handler any) abstract.RouteHandlerAbstract 
 			}
 		}
 	}
-	return func(ctx abstract.ContextAbstract) error {
+	return func(ctx abstract.Context) error {
 		return fmt.Errorf("invalid handler type: %T", handler)
 	}
 }
 
+func (a *WebApplication) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	a.Application.router.ServeHTTP(w, r, a.Application)
+}
+
+func (a *WebApplication) Run() error {
+	if err := a.Start(); err != nil {
+		return err
+	}
+	return a.WaitForShutdown()
+}
+
+func (a *WebApplication) RunAsync() <-chan error {
+	errCh := make(chan error, 1)
+	go func() { errCh <- a.Run() }()
+	return errCh
+}
+
+func (a *WebApplication) Start() error {
+	addr := ":8080"
+	if a.Application.config != nil {
+		if port := a.Application.config.GetString("server.port"); port != "" {
+			addr = ":" + port
+		}
+	}
+	if a.Application.logger != nil {
+		a.Application.logger.Info(fmt.Sprintf("Server starting on %s", addr))
+	}
+	return a.Listen(addr)
+}
+
+func (a *WebApplication) StartAsync() <-chan error {
+	ch := make(chan error, 1)
+	go func() {
+		ch <- a.Start()
+	}()
+	return ch
+}
+
+func (a *WebApplication) Stop() error {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultShutdownTimeout)
+	defer cancel()
+	return a.Shutdown(ctx)
+}
+
+func (a *WebApplication) WaitForShutdown() error {
+	select {}
+}
+
+var _ abstract.WebApplication = (*WebApplication)(nil)
+
+// EndpointRouteBuilder 端点路由构建器实现
+type EndpointRouteBuilder struct {
+	app *WebApplication
+}
+
+func (e *EndpointRouteBuilder) MapGet(path string, handler any) abstract.RouteBuilder {
+	return e.app.MapGet(path, handler)
+}
+
+func (e *EndpointRouteBuilder) MapPost(path string, handler any) abstract.RouteBuilder {
+	return e.app.MapPost(path, handler)
+}
+
+func (e *EndpointRouteBuilder) MapPut(path string, handler any) abstract.RouteBuilder {
+	return e.app.MapPut(path, handler)
+}
+
+func (e *EndpointRouteBuilder) MapDelete(path string, handler any) abstract.RouteBuilder {
+	return e.app.MapDelete(path, handler)
+}
+
+func (e *EndpointRouteBuilder) MapPatch(path string, handler any) abstract.RouteBuilder {
+	return e.app.MapPatch(path, handler)
+}
+
+func (e *EndpointRouteBuilder) MapControllers() abstract.EndpointRouteBuilder {
+	return e
+}
+
+func (e *EndpointRouteBuilder) MapControllerRoute(name string, pattern string, defaults map[string]string) abstract.EndpointRouteBuilder {
+	return e
+}
+
+func (e *EndpointRouteBuilder) MapAreaControllerRoute(name string, areaName string, pattern string, defaults map[string]string) abstract.EndpointRouteBuilder {
+	return e
+}
+
+func (e *EndpointRouteBuilder) MapDefaultControllerRoute() abstract.EndpointRouteBuilder {
+	e.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}", nil)
+	return e
+}
+
+var _ abstract.EndpointRouteBuilder = (*EndpointRouteBuilder)(nil)
+
+// CreateBuilder 创建 WebApplicationBuilder
 func CreateBuilder(args ...string) *WebApplicationBuilder {
-	return WebApplication{}.CreateBuilder(args...)
+	builder := NewWebApplicationBuilder()
+	if len(args) > 0 {
+		builder.Host.SetArgs(args)
+	}
+	return builder
 }
 
+// CreateApplication 创建 WebApplication
 func CreateApplication(args ...string) *WebApplication {
-	return CreateBuilder(args...).Build().(*WebApplication)
+	return CreateBuilder(args...).BuildWeb().(*WebApplication)
 }
 
-var _ abstract.WebApplicationAbstract = (*WebApplication)(nil)
+// CreateApplicationBuilder 创建通用 Application Builder（用于非 Web 场景）
+func CreateApplicationBuilder(args ...string) *ApplicationBuilder {
+	builder := NewApplicationBuilder()
+	if len(args) > 0 {
+		// 通用应用也可以处理命令行参数
+	}
+	return builder
+}
+
+// ApplicationCreateBuilder 创建通用 ApplicationBuilder（向后兼容）
+func ApplicationCreateBuilder() *ApplicationBuilder {
+	return NewApplicationBuilder()
+}
+
+// WebApplicationCreateBuilder 创建 WebApplicationBuilder（向后兼容）
+func WebApplicationCreateBuilder() *WebApplicationBuilder {
+	return NewWebApplicationBuilder()
+}

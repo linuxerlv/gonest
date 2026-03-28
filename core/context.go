@@ -129,7 +129,7 @@ func (c *HttpContext) Get(key string) any {
 	return c.values[key]
 }
 
-func GetFromContext[T any](ctx abstract.ContextAbstract, key string) T {
+func GetFromContext[T any](ctx abstract.Context, key string) T {
 	v := ctx.Get(key)
 	if v == nil {
 		var zero T
@@ -160,4 +160,4 @@ func parseQuery(rawQuery string) map[string][]string {
 	return result
 }
 
-var _ abstract.ContextAbstract = (*HttpContext)(nil)
+var _ abstract.Context = (*HttpContext)(nil)
