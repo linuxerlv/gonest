@@ -1,33 +1,35 @@
 # Gonest
 
-> 简洁优雅的 Go Web 框架，灵感来自 ASP.NET Core 和 NestJS
+> Simple and elegant Go Web framework inspired by ASP.NET Core and NestJS
 
 [![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://golang.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/linuxerlv/gonest/workflows/CI/badge.svg)](https://github.com/linuxerlv/gonest/actions)
 
----
-
-## 核心特性
-
-| 特性 | 说明 |
-|-----|------|
-| 🏗️ **接口分离设计** | `core/abstract/` 定义接口，`core/` 实现，扩展包面向接口开发 |
-| 🔌 **模块化扩展** | 中间件、协议、任务调度均为独立包，按需引入 |
-| ⚡ **细粒度接口** | ContextAbstract = RequestReader + ResponseWriter + ValueStore，按需依赖 |
-| 📦 **开箱即用** | 配置（Koanf）、日志（Zap）、认证、授权全套解决方案 |
+**English** | [中文](README.zh.md) | [日本語](README.ja.md)
 
 ---
 
-## 5 分钟快速开始
+## Core Features
 
-### 安装
+| Feature | Description |
+|---------|-------------|
+| 🏗️ **Interface-First Architecture** | Interfaces in `core/abstract/`, implementations in `core/`, extensions depend on interfaces |
+| 🔌 **Modular Design** | Middleware, protocols, and task scheduling are independent packages - use what you need |
+| ⚡ **Fine-Grained Interfaces** | ContextAbstract = RequestReader + ResponseWriter + ValueStore - compose dependencies at will |
+| 📦 **Production Ready** | Config (Koanf), logging (Zap), authentication, authorization - complete solution |
+
+---
+
+## Get Started in 5 Minutes
+
+### Installation
 
 ```bash
 go get github.com/linuxerlv/gonest
 ```
 
-### 基础使用
+### Quick Start
 
 ```go
 package main
@@ -40,7 +42,7 @@ import (
 )
 
 func main() {
-    // 方式一：快速创建（适合简单应用）
+    // Method 1: Quick creation (suitable for simple applications)
     app := core.CreateApplication()
     app.Use(recovery.New(nil))
     app.Use(cors.New(nil))
@@ -51,7 +53,7 @@ func main() {
 }
 ```
 
-### Builder 模式（推荐，支持依赖注入）
+### Builder Pattern (Recommended with Dependency Injection)
 
 ```go
 package main
@@ -63,26 +65,26 @@ import (
 )
 
 func main() {
-    // 创建 Builder
+    // Create builder
     builder := core.CreateBuilder()
     
-    // 设置配置和环境变量（公开属性，直接访问）
+    // Set config and environment variables (public properties)
     builder.Config = config.NewKoanfConfig(".")
     builder.Env.Set("APP_ENV", "production")
     
-    // 注册服务到 DI 容器（Wire 注入友好）
+    // Register services to DI container (Wire injection friendly)
     builder.Services.AddSingleton(&MyService{})
     builder.Services.AddScoped(func(s abstract.ServiceCollectionAbstract) *DbContext {
         return &DbContext{DSN: builder.Env.Get("DATABASE_URL")}
     })
     
-    // 构建应用
+    // Build application
     app := builder.Build().(*core.WebApplication)
     
-    // 从 DI 容器获取服务
+    // Get service from DI container
     service := core.GetService[*MyService](app.Services)
     
-    // 注册路由
+    // Register routes
     app.MapGet("/hello", func(ctx abstract.ContextAbstract) error {
         return ctx.JSON(200, map[string]string{"message": "Hello World"})
     })
@@ -93,89 +95,89 @@ func main() {
 
 ---
 
-## 项目结构
+## Project Structure
 
 ```
 gonest/
 ├── core/
-│   ├── abstract/              # 接口定义（细粒度、可组合）
+│   ├── abstract/              # Interface definitions (fine-grained, composable)
 │   │   ├── context.go         # ContextAbstract, RequestReaderAbstract, ResponseWriterAbstract...
 │   │   ├── router.go          # RouterAbstract, RouteBuilderAbstract...
 │   │   ├── middleware.go      # MiddlewareAbstract...
 │   │   ├── di.go              # ServiceCollectionAbstract...
-│   │   ├── env.go             # EnvAbstract 环境变量接口
-│   │   └── ...                # 其他接口
+│   │   ├── env.go             # EnvAbstract environment variables interface
+│   │   └── ...                # Other interfaces
 │   │
-│   ├── context.go             # HttpContext 实现
-│   ├── router.go              # HttpRouter 实现
-│   ├── application.go         # Application 实现
-│   ├── builder.go             # WebApplicationBuilder 实现
-│   ├── env.go                 # Env 环境变量实现
-│   └── ...                    # 其他实现
+│   ├── context.go             # HttpContext implementation
+│   ├── router.go              # HttpRouter implementation
+│   ├── application.go         # Application implementation
+│   ├── builder.go             # WebApplicationBuilder implementation
+│   ├── env.go                 # Env environment variables implementation
+│   └── ...                    # Other implementations
 │
-├── config/                    # 配置模块
-│   ├── config.go              # Config 接口（实现 abstract.ConfigAbstract）
-│   └── koanf.go               # Koanf 实现
+├── config/                    # Configuration module
+│   ├── config.go              # Config interface (implements abstract.ConfigAbstract)
+│   └── koanf.go               # Koanf implementation
 │
-├── logger/                    # 日志模块
-│   ├── logger.go              # Logger 接口（实现 abstract.LoggerAbstract）
-│   └── zap.go                 # Zap 实现
+├── logger/                    # Logger module
+│   ├── logger.go              # Logger interface (implements abstract.LoggerAbstract)
+│   └── zap.go                 # Zap implementation
 │
-├── middleware/                # 中间件扩展包
-│   ├── auth/                  # JWT 认证
-│   ├── session/               # Session 管理
-│   ├── casbin/                # Casbin 权限控制
+├── middleware/                # Middleware extension packages
+│   ├── auth/                  # JWT authentication
+│   ├── session/               # Session management
+│   ├── casbin/                # Casbin permission control
 │   ├── cors/                  # CORS
-│   ├── recovery/              # Panic 恢复
-│   ├── ratelimit/             # 限流
-│   ├── timeout/               # 超时控制
-│   ├── gzip/                  # Gzip 压缩
-│   ├── security/              # 安全头
-│   ├── logger/                # 日志中间件
-│   └── requestid/             # 请求 ID
+│   ├── recovery/              # Panic recovery
+│   ├── ratelimit/             # Rate limiting
+│   ├── timeout/               # Timeout control
+│   ├── gzip/                  # Gzip compression
+│   ├── security/              # Security headers
+│   ├── logger/                # Logger middleware
+│   └── requestid/             # Request ID
 │
-├── protocol/                  # 协议扩展包
+├── protocol/                  # Protocol extension packages
 │   ├── websocket/             # WebSocket
 │   ├── sse/                   # Server-Sent Events
 │   ├── http3/                 # HTTP/3
 │   └── grpc/                  # gRPC
 │
-├── task/                      # 任务调度
-│   ├── interface.go           # TaskQueue, CronScheduler 接口
-│   ├── asynq.go               # Asynq 实现（Redis）
-│   ├── cron.go                # Cron 实现
-│   └── memory.go              # 内存实现
+├── task/                      # Task scheduling
+│   ├── interface.go           # TaskQueue, CronScheduler interfaces
+│   ├── asynq.go               # Asynq implementation (Redis)
+│   ├── cron.go                # Cron implementation
+│   └── memory.go              # Memory implementation
 │
-├── ipc/                       # IPC 接口（进程间通信）
+├── ipc/                       # IPC interface (inter-process communication)
 │   └── interface.go           # Endpoint, Publisher, Subscriber...
 │
-└── gonest.go                  # 向后兼容类型别名
+└── gonest.go                  # Backward compatible type aliases
 ```
 
 ---
 
-## 接口设计
+## Interface Design
 
-### 细粒度接口（core/abstract/）
+### Fine-Grained Interfaces (core/abstract/)
 
-框架采用细粒度接口设计，开发者可以按需依赖：
+The framework adopts fine-grained interface design, allowing developers to depend on exactly what they need:
 
 ```go
-// 请求读取接口
+// Request reading interface
 type RequestReaderAbstract interface {
     Method() string
     Path() string
     Header(name string) string
 }
 
-// 响应写入接口
+// Response writing interface
 type ResponseWriterAbstract interface {
     Status(code int)
     JSON(code int, v any) error
     String(code int, s string) error
 }
 
-// 完整上下文接口（组合）
+// Complete context interface (composed)
 type ContextAbstract interface {
     ContextRunnerAbstract
     FullRequestReaderAbstract
@@ -184,62 +186,62 @@ type ContextAbstract interface {
 }
 ```
 
-### 使用方式
+### Usage Patterns
 
 ```go
-// 1. 使用完整核心包
+// 1. Use complete core package
 import "github.com/linuxerlv/gonest/core"
 app := core.CreateApplication()
 
-// 2. 只用接口定义（编写扩展）
+// 2. Use only interface definitions (write extensions)
 import "github.com/linuxerlv/gonest/core/abstract"
 func MyMiddleware(ctx abstract.ContextAbstract) error { ... }
 
-// 3. 使用扩展中间件
+// 3. Use extension middleware
 import "github.com/linuxerlv/gonest/middleware/auth"
 app.Use(auth.New(provider, nil))
 
-// 4. 向后兼容（gonest 包类型别名）
+// 4. Backward compatibility (gonest package type aliases)
 import "github.com/linuxerlv/gonest"
 app := gonest.NewApplication()
 ```
 
 ---
 
-## API 速查
+## API Quick Reference
 
-### 应用创建
+### Application Creation
 
 ```go
 import "github.com/linuxerlv/gonest/core"
 
-// 方式一：快速创建（适合简单应用）
+// Method 1: Quick creation (suitable for simple applications)
 app := core.CreateApplication()
 
-// 方式二：Builder 模式（推荐，支持依赖注入）
+// Method 2: Builder pattern (recommended with dependency injection)
 builder := core.CreateBuilder()
-builder.Config = cfg           // 设置配置
-builder.Env.Set("KEY", "val")  // 设置环境变量
-builder.Services.AddSingleton(&MyService{})  // 注册服务
+builder.Config = cfg           // Set configuration
+builder.Env.Set("KEY", "val")  // Set environment variables
+builder.Services.AddSingleton(&MyService{})  // Register services
 app := builder.Build().(*core.WebApplication)
 
-// 访问公开属性
+// Access public properties
 cfg := app.Config
 env := app.Env
 services := app.Services
 ```
 
-### 路由注册
+### Route Registration
 
 ```go
 import "github.com/linuxerlv/gonest/core/abstract"
 
-// Application 方式
+// Application method
 app.GET("/users", func(ctx abstract.ContextAbstract) error {
     return ctx.JSON(200, users)
 })
 
-// WebApplication 方式（MapXXX 方法）
+// WebApplication method (MapXXX methods)
 app.MapGet("/users", func(ctx abstract.ContextAbstract) error {
     return ctx.JSON(200, users)
 })
@@ -250,12 +252,12 @@ app.MapPost("/users", func(ctx abstract.ContextAbstract) error {
     return ctx.JSON(201, user)
 })
 
-// 路由组
+// Route groups
 api := app.Group("/api/v1")
 api.GET("/users", listUsers)
 ```
 
-### 中间件
+### Middleware
 
 ```go
 import (
@@ -274,58 +276,58 @@ app.Use(ratelimit.New(&ratelimit.Config{
 }))
 ```
 
-### 依赖注入
+### Dependency Injection
 
 ```go
-// 注册
+// Register
 builder.Services.AddSingleton(&MyService{})
 builder.Services.AddScoped(func(s abstract.ServiceCollectionAbstract) *DbContext {
     return &DbContext{}
 })
 
-// 获取
+// Retrieve
 service := core.GetService[*MyService](app.Services)
 ```
 
-### 环境变量
+### Environment Variables
 
 ```go
-// 读取环境变量
+// Read environment variables
 dbUrl := builder.Env.Get("DATABASE_URL")
 port := builder.Env.GetOrDefault("PORT", "8080")
 
-// 检查存在
+// Check existence
 if builder.Env.Has("DEBUG") {
     // ...
 }
 
-// 获取所有
+// Get all
 allEnv := builder.Env.All()
 ```
 
-### 配置文件
+### Configuration Files
 
 ```go
 import "github.com/linuxerlv/gonest/config"
 
-// 加载 JSON 配置文件
+// Load JSON configuration file
 cfg := config.NewKoanfConfig(".")
 cfg.Load(
     config.NewFileProvider("config.json", config.NewJSONParser()),
     config.NewJSONParser(),
 )
 
-// 加载 YAML 配置文件
+// Load YAML configuration file
 cfg.Load(
     config.NewFileProvider("config.yaml", config.NewYAMLParser()),
     config.NewYAMLParser(),
 )
 
-// 读取配置
+// Read configuration
 port := cfg.GetString("server.port")
 debug := cfg.GetBool("debug")
 
-// 绑定到结构体
+// Bind to struct
 type ServerConfig struct {
     Port    string `koanf:"port"`
     Timeout int    `koanf:"timeout"`
@@ -333,23 +335,23 @@ type ServerConfig struct {
 var serverCfg ServerConfig
 cfg.Unmarshal("server", &serverCfg)
 
-// 设置到 Builder
+// Set to builder
 builder := core.CreateBuilder()
 builder.Config = cfg
 ```
 
 ---
 
-## 文档导航
+## Documentation Navigation
 
-| 文档 | 适合人群 | 内容 |
-|-----|---------|------|
-| **[教程](TUTORIAL.md)** | 🎓 Go 初学者 | 渐进式学习指南 |
-| **[API 参考](API_REFERENCE.md)** | 👨‍💻 应用开发者 | 完整 API 文档 |
-| **[贡献者指南](DEVELOPER.md)** | 🛠️ 框架贡献者 | 架构设计、编码规范、测试策略、扩展机制 |
+| Document | Audience | Content |
+|----------|----------|---------|
+| **[Tutorial](TUTORIAL.md)** | 🎓 Go Beginners | Progressive learning guide |
+| **[API Reference](API_REFERENCE.md)** | 👨‍💻 Application Developers | Complete API documentation |
+| **[Contributing Guide](DEVELOPER.md)** | 🛠️ Framework Contributors | Architecture design, coding standards, testing strategies, extension mechanisms |
 
 ---
 
 ## License
 
-MIT License - 详见 [LICENSE](LICENSE) 文件
+MIT License - See [LICENSE](LICENSE) file
